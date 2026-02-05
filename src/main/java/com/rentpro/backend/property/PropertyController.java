@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
+// import com.fasterxml.jackson.databind.ObjectMapper;
 // import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
@@ -30,8 +30,6 @@ public class PropertyController {
     private final PropertyRepository propertyRepo;
     private final UserRepository userRepo;
     private final PropertyService propertyService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     public PropertyController(PropertyRepository propertyRepo, UserRepository userRepo,
             PropertyService propertyService) {
         this.propertyRepo = propertyRepo;
@@ -103,7 +101,7 @@ public class PropertyController {
                 p.getLongitude(),
                 p.getCategory(),
                 p.getNotes(),
-                p.getMeta() == null ? null : objectMapper.valueToTree(p.getMeta()),
+                p.getMeta(),
                 p.getStructureType(),
                 p.getUnitCount(),
                 p.getCreatedAt());

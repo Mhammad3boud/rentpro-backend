@@ -1,7 +1,7 @@
 package com.rentpro.backend.property.dto;
 
 import java.time.Instant;
-import com.fasterxml.jackson.databind.JsonNode;
+import java.util.Map;
 
 public record PropertyResponse(
         Long id,
@@ -11,7 +11,7 @@ public record PropertyResponse(
         Double longitude,
         String category,
         String notes,
-        JsonNode meta,
+        Map<String, Object> meta,
         String structureType,
         Integer unitCount,
         Instant createdAt) {
