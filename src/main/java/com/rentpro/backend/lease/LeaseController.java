@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 
 import com.rentpro.backend.lease.dto.CreateLeaseRequest;
-import com.rentpro.backend.lease.dto.EndLeaseRequest;
+// import com.rentpro.backend.lease.dto.EndLeaseRequest;
 import com.rentpro.backend.user.User;
 import com.rentpro.backend.user.UserRepository;
 

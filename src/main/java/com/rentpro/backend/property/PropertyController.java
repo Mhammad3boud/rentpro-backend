@@ -10,26 +10,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-// import com.fasterxml.jackson.databind.ObjectMapper;
-// import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
-import java.util.Set;
-
 
 @RestController
 @RequestMapping("/properties")
 public class PropertyController {
 
-    private static final Set<String> ALLOWED_CATEGORIES = Set.of(
-            "RENTAL", "FARM", "LAND", "WAREHOUSE", "OFFICE", "OTHER");
-
-    private static final Set<String> ALLOWED_STRUCTURE = Set.of(
-            "STANDALONE", "MULTI_UNIT");
-
     private final PropertyRepository propertyRepo;
     private final UserRepository userRepo;
     private final PropertyService propertyService;
+
     public PropertyController(PropertyRepository propertyRepo, UserRepository userRepo,
             PropertyService propertyService) {
         this.propertyRepo = propertyRepo;
@@ -55,11 +46,12 @@ public class PropertyController {
         User owner = userRepo.findByEmail(auth.getName())
                 .orElseThrow(() -> new RuntimeException("Owner not found"));
 
-        return ResponseEntity.ok(
-                propertyRepo.findAllByOwner_Id(owner.getId())
-                        .stream()
-                        .map(this::toResponse)
-                        .toList());
+        List<PropertyResponse> list = propertyRepo.findAllByOwner_Id(owner.getId())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+
+        return ResponseEntity.ok(list);
     }
 
     @PreAuthorize("hasRole('OWNER')")
@@ -71,25 +63,29 @@ public class PropertyController {
         User owner = userRepo.findByEmail(auth.getName())
                 .orElseThrow(() -> new RuntimeException("Owner not found"));
 
-        String category = normalizeCategory(req.category());
-        String structureType = normalizeStructure(req.structureType());
-        Integer unitCount = normalizeUnitCount(structureType, req.unitCount());
+        return propertyRepo.findByIdAndOwner_Id(id, owner.getId())
+                .map(p -> {
+                    // ✅ put rules in service (same validation rules as create)
+                    Property updated = propertyService.updateProperty(p, req);
+                    return ResponseEntity.ok(toResponse(updated));
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PreAuthorize("hasRole('OWNER')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProperty(
+            @PathVariable Long id,
+            Authentication auth) {
+        User owner = userRepo.findByEmail(auth.getName())
+                .orElseThrow(() -> new RuntimeException("Owner not found"));
 
         return propertyRepo.findByIdAndOwner_Id(id, owner.getId())
                 .map(p -> {
-                    p.setTitle(req.title());
-                    p.setAddress(req.address());
-                    p.setLatitude(req.latitude());
-                    p.setLongitude(req.longitude());
-                    p.setCategory(category);
-                    p.setNotes(req.notes());
-                    p.setMeta(req.meta());
-                    p.setStructureType(structureType);
-                    p.setUnitCount(unitCount);
-                    propertyRepo.save(p);
-                    return ResponseEntity.ok(toResponse(p));
+                    propertyRepo.delete(p);
+                    return ResponseEntity.noContent().<Void>build();
                 })
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.<Void>notFound().build());
     }
 
     private PropertyResponse toResponse(Property p) {
@@ -105,27 +101,5 @@ public class PropertyController {
                 p.getStructureType(),
                 p.getUnitCount(),
                 p.getCreatedAt());
-    }
-
-    private String normalizeCategory(String raw) {
-        String c = (raw == null || raw.isBlank()) ? "RENTAL" : raw.trim().toUpperCase();
-        if (!ALLOWED_CATEGORIES.contains(c))
-            throw new RuntimeException("Invalid category: " + c);
-        return c;
-    }
-
-    private String normalizeStructure(String raw) {
-        String s = (raw == null || raw.isBlank()) ? "STANDALONE" : raw.trim().toUpperCase();
-        if (!ALLOWED_STRUCTURE.contains(s))
-            throw new RuntimeException("Invalid structureType: " + s);
-        return s;
-    }
-
-    private Integer normalizeUnitCount(String structureType, Integer unitCount) {
-        if ("STANDALONE".equals(structureType))
-            return 1;
-        if (unitCount == null || unitCount < 1)
-            throw new RuntimeException("unitCount must be >= 1 for MULTI_UNIT");
-        return unitCount;
     }
 }
