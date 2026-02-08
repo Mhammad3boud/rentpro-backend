@@ -69,6 +69,26 @@ public class PropertyService {
         return property;
     }
 
+    @Transactional
+    public Property updateProperty(Property p, com.rentpro.backend.property.dto.UpdatePropertyRequest req) {
+
+        String category = normalizeCategory(req.category());
+        String structureType = normalizeStructure(req.structureType());
+        Integer unitCount = normalizeUnitCount(structureType, req.unitCount());
+
+        p.setTitle(req.title());
+        p.setAddress(req.address());
+        p.setLatitude(req.latitude());
+        p.setLongitude(req.longitude());
+        p.setCategory(category);
+        p.setNotes(req.notes());
+        p.setMeta(req.meta());
+        p.setStructureType(structureType);
+        p.setUnitCount(unitCount);
+
+        return propertyRepo.save(p);
+    }
+
     private String normalizeCategory(String raw) {
         String c = (raw == null || raw.isBlank()) ? "RENTAL" : raw.trim().toUpperCase();
         if (!ALLOWED_CATEGORIES.contains(c)) {
