@@ -1,10 +1,17 @@
 package com.rentpro.backend.notification;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
-public interface NotificationRepository extends JpaRepository<Notification, Long> {
-    List<Notification> findTop50ByUser_IdOrderByCreatedAtDesc(Long userId);
-    List<Notification> findTop50ByUser_IdAndIsReadFalseOrderByCreatedAtDesc(Long userId);
+@Repository
+public interface NotificationRepository extends JpaRepository<Notification, UUID> {
+    
+    List<Notification> findByUserUserIdOrderByCreatedAtDesc(UUID userId);
+    
+    List<Notification> findByUserUserIdAndIsReadFalseOrderByCreatedAtDesc(UUID userId);
+    
+    long countByUserUserIdAndIsReadFalse(UUID userId);
 }

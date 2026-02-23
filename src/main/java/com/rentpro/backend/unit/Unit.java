@@ -1,33 +1,39 @@
 package com.rentpro.backend.unit;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.rentpro.backend.property.Property;
 import jakarta.persistence.*;
-import lombok.*;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
-@Table(name = "units")
+@Table(
+        name = "units",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"property_id", "unit_number"})
+)
 public class Unit {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "unit_id")
+    private UUID unitId = UUID.randomUUID();
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "property_id", nullable = false)
-    @JsonIgnore
     private Property property;
 
-    @Column(name = "unit_no", nullable = false, length = 50)
-    private String unitNo;
+    @Column(name = "unit_number", nullable = false)
+    private String unitNumber;
 
     @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    public UUID getUnitId() { return unitId; }
+
+    public Property getProperty() { return property; }
+    public void setProperty(Property property) { this.property = property; }
+
+    public String getUnitNumber() { return unitNumber; }
+    public void setUnitNumber(String unitNumber) { this.unitNumber = unitNumber; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

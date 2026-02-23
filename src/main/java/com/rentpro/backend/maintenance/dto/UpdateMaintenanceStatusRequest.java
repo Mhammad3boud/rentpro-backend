@@ -1,8 +1,10 @@
 package com.rentpro.backend.maintenance.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import com.rentpro.backend.maintenance.MaintenanceStatus;
+import java.math.BigDecimal;
 
 public record UpdateMaintenanceStatusRequest(
-        @NotBlank String status,   // OPEN/IN_PROGRESS/RESOLVED
-        String ownerNotes
+        MaintenanceStatus status,
+        String assignedTechnician,
+        BigDecimal maintenanceCost
 ) {}

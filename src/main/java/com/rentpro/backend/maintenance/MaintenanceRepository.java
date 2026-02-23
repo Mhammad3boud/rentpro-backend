@@ -1,23 +1,26 @@
 package com.rentpro.backend.maintenance;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.UUID;
 
-public interface MaintenanceRepository extends JpaRepository<MaintenanceRequest, Long> {
+public interface MaintenanceRepository extends JpaRepository<MaintenanceRequest, UUID> {
 
-    // Tenant view (my tickets)
-    List<MaintenanceRequest> findAllByTenant_IdOrderByCreatedAtDesc(Long tenantId);
+    List<MaintenanceRequest> findByTenant_TenantId(UUID tenantId);
 
-    // Owner view (tickets for my property via unit->property->owner)
-    List<MaintenanceRequest> findAllByUnit_Property_IdOrderByCreatedAtDesc(Long propertyId);
+    List<MaintenanceRequest> findByProperty_Owner_UserId(UUID ownerId);
 
-    // Owner view (all tickets for all my properties)
-    List<MaintenanceRequest> findAllByUnit_Property_Owner_IdOrderByCreatedAtDesc(Long ownerId);
+    long countByTenant_User_UserId(UUID tenantUserId);
 
-    // Count methods for dashboard
-    long countByUnit_Property_Owner_IdAndStatus(Long ownerId, String status);
-
-    long countByUnit_Property_Owner_IdAndStatusAndPriority(Long ownerId, String status, String priority);
-
+    @Query("""
+        select count(m)
+        from MaintenanceRequest m
+        where m.property.owner.userId = :ownerId
+          and m.status = :status
+    """)
+    long countByOwnerAndStatus(@Param("ownerId") UUID ownerId,
+                               @Param("status") MaintenanceStatus status);
 }

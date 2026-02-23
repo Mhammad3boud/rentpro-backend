@@ -1,62 +1,70 @@
 package com.rentpro.backend.property;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.rentpro.backend.user.User;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
-import java.time.Instant;
-import java.util.Map;
-
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "properties")
 public class Property {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "property_id")
+    private UUID propertyId = UUID.randomUUID();
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "owner_id", nullable = false)
-    @JsonIgnore
     private User owner;
 
-    @Column(nullable = false, length = 120)
-    private String title;
+    @Column(name = "property_name", nullable = false)
+    private String propertyName;
 
-    @Column(nullable = false, length = 30)
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "property_type", nullable = false)
+    private PropertyType propertyType;
 
-    @Column(columnDefinition = "text")
-    private String notes;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "usage_type")
+    private UsageType usageType;
 
-    // ✅ FIX: proper jsonb mapping
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private Map<String, Object> meta;
-
-    @Column(nullable = false, length = 20)
-    private String structureType;
-
-    @Column(nullable = false)
-    private Integer unitCount;
-
-    @Column(length = 255)
     private String address;
+    private String region;
+    private String postcode;
 
-    @Column(name = "latitude")
     private Double latitude;
-
-    @Column(name = "longitude")
     private Double longitude;
 
+    @Column(name = "water_meter_no")
+    private String waterMeterNo;
+
+    @Column(name = "electricity_meter_no")
+    private String electricityMeterNo;
+
     @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    public UUID getPropertyId() { return propertyId; }
+    public User getOwner() { return owner; }
+    public void setOwner(User owner) { this.owner = owner; }
+    public String getPropertyName() { return propertyName; }
+    public void setPropertyName(String propertyName) { this.propertyName = propertyName; }
+    public PropertyType getPropertyType() { return propertyType; }
+    public void setPropertyType(PropertyType propertyType) { this.propertyType = propertyType; }
+    public UsageType getUsageType() { return usageType; }
+    public void setUsageType(UsageType usageType) { this.usageType = usageType; }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public String getRegion() { return region; }
+    public void setRegion(String region) { this.region = region; }
+    public String getPostcode() { return postcode; }
+    public void setPostcode(String postcode) { this.postcode = postcode; }
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
+    public String getWaterMeterNo() { return waterMeterNo; }
+    public void setWaterMeterNo(String waterMeterNo) { this.waterMeterNo = waterMeterNo; }
+    public String getElectricityMeterNo() { return electricityMeterNo; }
+    public void setElectricityMeterNo(String electricityMeterNo) { this.electricityMeterNo = electricityMeterNo; }
 }

@@ -1,110 +1,193 @@
 package com.rentpro.backend.user;
 
-import com.rentpro.backend.user.dto.CreateTenantRequest;
-import com.rentpro.backend.user.dto.TenantResponse;
-import com.rentpro.backend.user.dto.UpdateTenantRequest;
-
+import com.rentpro.backend.user.dto.ChangePasswordRequest;
+import com.rentpro.backend.user.dto.UpdateProfileRequest;
+import com.rentpro.backend.user.dto.UserProfileResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Instant;
-import java.util.List;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 public class UserController {
 
-    private final UserRepository userRepo;
-    private final PasswordEncoder encoder;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private static final String UPLOAD_DIR = "uploads/profiles/";
 
-    public UserController(UserRepository userRepo, PasswordEncoder encoder) {
-        this.userRepo = userRepo;
-        this.encoder = encoder;
+    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // OWNER creates tenant
-    @PreAuthorize("hasRole('OWNER')")
-    @PostMapping("/tenants")
-    public ResponseEntity<?> createTenant(@Valid @RequestBody CreateTenantRequest req, Authentication auth) {
+    @GetMapping("/me")
+    public UserProfileResponse getCurrentUser(Authentication authentication) {
+        String email = authentication.getName();
 
-        User owner = userRepo.findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String email = req.email().toLowerCase().trim();
-        if (userRepo.existsByEmail(email)) {
-            return ResponseEntity.badRequest().body("Email already exists");
+        return new UserProfileResponse(
+                user.getUserId(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.getFullName(),
+                user.getPhone(),
+                user.getAddress(),
+                user.getProfilePicture(),
+                user.getNotificationEmail(),
+                user.getNotificationPush()
+        );
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<?> updateProfile(
+            Authentication authentication,
+            @RequestBody UpdateProfileRequest request) {
+        
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (request.fullName() != null) {
+            user.setFullName(request.fullName());
+        }
+        if (request.phone() != null) {
+            user.setPhone(request.phone());
+        }
+        if (request.address() != null) {
+            user.setAddress(request.address());
+        }
+        if (request.notificationEmail() != null) {
+            user.setNotificationEmail(request.notificationEmail());
+        }
+        if (request.notificationPush() != null) {
+            user.setNotificationPush(request.notificationPush());
         }
 
-        User tenant = User.builder()
-                .fullName(req.fullName())
-                .email(email)
-                .phone(req.phone())
-                .passwordHash(encoder.encode(req.password()))
-                .role(Role.TENANT)
-                .createdAt(Instant.now())
-                .owner(owner) // sets owner_id
-                .build();
+        userRepository.save(user);
 
-        userRepo.save(tenant);
-        return ResponseEntity.ok(
-                new TenantResponse(tenant.getId(), tenant.getFullName(), tenant.getEmail(), tenant.getPhone(),
-                        tenant.getCreatedAt()));
+        return ResponseEntity.ok(new UserProfileResponse(
+                user.getUserId(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.getFullName(),
+                user.getPhone(),
+                user.getAddress(),
+                user.getProfilePicture(),
+                user.getNotificationEmail(),
+                user.getNotificationPush()
+        ));
     }
 
-    // OWNER gets tenants
-    @PreAuthorize("hasRole('OWNER')")
-    @GetMapping("/tenants")
-    public ResponseEntity<List<TenantResponse>> myTenants(Authentication auth) {
-        User owner = userRepo.findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+    @PostMapping("/me/password")
+    public ResponseEntity<?> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<TenantResponse> result = userRepo.findAllByOwner_Id(owner.getId())
-                .stream()
-                .map(t -> new TenantResponse(t.getId(), t.getFullName(), t.getEmail(), t.getPhone(), t.getCreatedAt()))
-                .toList();
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Current password is incorrect"));
+        }
 
-        return ResponseEntity.ok(result);
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
     }
 
-    // OWNER updates tenant
-    @PreAuthorize("hasRole('OWNER')")
-    @PutMapping("/tenants/{id}")
-    public ResponseEntity<?> updateTenant(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateTenantRequest req,
-            Authentication auth) {
-        User owner = userRepo.findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+    @PostMapping("/me/profile-picture")
+    public ResponseEntity<?> uploadProfilePicture(
+            Authentication authentication,
+            @RequestParam("file") MultipartFile file) {
+        
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return userRepo.findByIdAndOwner_Id(id, owner.getId())
-                .map(tenant -> {
-                    tenant.setFullName(req.fullName());
-                    tenant.setPhone(req.phone());
-                    userRepo.save(tenant);
-                    return ResponseEntity.ok(
-                            new TenantResponse(tenant.getId(), tenant.getFullName(), tenant.getEmail(),
-                                    tenant.getPhone(), tenant.getCreatedAt()));
-                })
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No file uploaded"));
+        }
+
+        // Validate file type
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Only image files are allowed"));
+        }
+
+        try {
+            // Create upload directory if it doesn't exist
+            Path uploadPath = Paths.get(UPLOAD_DIR);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // Generate unique filename
+            String originalFilename = file.getOriginalFilename();
+            String extension = originalFilename != null && originalFilename.contains(".") 
+                    ? originalFilename.substring(originalFilename.lastIndexOf("."))
+                    : ".jpg";
+            String filename = user.getUserId().toString() + "_" + System.currentTimeMillis() + extension;
+            
+            Path filePath = uploadPath.resolve(filename);
+            Files.write(filePath, file.getBytes());
+
+            // Delete old profile picture if exists
+            String oldPicture = user.getProfilePicture();
+            if (oldPicture != null && !oldPicture.isEmpty()) {
+                try {
+                    Path oldPath = Paths.get(oldPicture.replace("/api/uploads/profiles/", UPLOAD_DIR));
+                    Files.deleteIfExists(oldPath);
+                } catch (Exception e) {
+                    // Ignore delete errors
+                }
+            }
+
+            // Save new profile picture path
+            String pictureUrl = "/api/uploads/profiles/" + filename;
+            user.setProfilePicture(pictureUrl);
+            userRepository.save(user);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Profile picture updated successfully",
+                    "profilePicture", pictureUrl
+            ));
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Failed to upload file"));
+        }
     }
 
-    // OWNER deletes tenant
-    @PreAuthorize("hasRole('OWNER')")
-    @DeleteMapping("/tenants/{id}")
-    public ResponseEntity<?> deleteTenant(@PathVariable Long id, Authentication auth) {
-        User owner = userRepo.findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+    @DeleteMapping("/me/profile-picture")
+    public ResponseEntity<?> deleteProfilePicture(Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return userRepo.findByIdAndOwner_Id(id, owner.getId())
-                .map(t -> {
-                    userRepo.delete(t);
-                    return ResponseEntity.ok("Tenant deleted");
-                })
-                .orElseGet(() -> ResponseEntity.status(404).body("Tenant not found"));
+        String oldPicture = user.getProfilePicture();
+        if (oldPicture != null && !oldPicture.isEmpty()) {
+            try {
+                Path oldPath = Paths.get(oldPicture.replace("/api/uploads/profiles/", UPLOAD_DIR));
+                Files.deleteIfExists(oldPath);
+            } catch (Exception e) {
+                // Ignore delete errors
+            }
+        }
+
+        user.setProfilePicture(null);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of("message", "Profile picture removed"));
     }
-
 }

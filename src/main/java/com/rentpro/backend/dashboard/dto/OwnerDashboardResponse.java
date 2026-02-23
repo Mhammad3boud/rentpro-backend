@@ -1,9 +1,20 @@
 package com.rentpro.backend.dashboard.dto;
 
-import java.util.List;
+import java.math.BigDecimal;
 
 public record OwnerDashboardResponse(
-        OwnerDashboardSummaryResponse summary,
-        List<OverdueInvoiceItem> attentionInvoices,
-        MaintenanceCountsResponse maintenance
+        BigDecimal totalExpected,
+        BigDecimal totalCollected,
+        BigDecimal totalOutstanding,
+        BigDecimal monthlyRevenue,
+        long overdueCount,
+        long partialCount,
+        long pendingCount,
+        long maintenancePending,
+        long maintenanceInProgress,
+        long maintenanceResolved,
+        long maintenanceRejected,
+        long totalProperties,
+        long totalTenants,
+        long activeLeases
 ) {}

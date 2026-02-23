@@ -2,47 +2,56 @@ package com.rentpro.backend.notification;
 
 import com.rentpro.backend.user.User;
 import jakarta.persistence.*;
-import lombok.*;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "notifications")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
-@Builder
 public class Notification {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    @Column(name = "notification_id")
+    private UUID notificationId = UUID.randomUUID();
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false, length = 40)
-    private String type;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private NotificationType type;
 
-    @Column(nullable = false, length = 160)
+    @Column(length = 255)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "text")
+    @Column(columnDefinition = "TEXT")
     private String message;
 
-    @Column(name = "entity_type", length = 40)
-    private String entityType;
-
-    @Column(name = "entity_id")
-    private Long entityId;
-
     @Column(name = "is_read", nullable = false)
-    private boolean isRead;
+    private Boolean isRead = false;
 
     @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    @PrePersist
-    void prePersist() {
-        if (createdAt == null) createdAt = Instant.now();
-    }
+    // Getters & Setters
+
+    public UUID getNotificationId() { return notificationId; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+
+    public NotificationType getType() { return type; }
+    public void setType(NotificationType type) { this.type = type; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
+
+    public Boolean getIsRead() { return isRead; }
+    public void setIsRead(Boolean isRead) { this.isRead = isRead; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }
