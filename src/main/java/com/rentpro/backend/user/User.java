@@ -1,53 +1,139 @@
 package com.rentpro.backend.user;
 
 import jakarta.persistence.*;
-import lombok.*;
+import java.time.LocalDateTime;
+import java.util.UUID;
+import org.hibernate.annotations.UuidGenerator;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "users")
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "user_id", nullable = false, updatable = false)
+    @UuidGenerator
+    private UUID userId;
 
-    @Column(name = "full_name", nullable = false, length = 120)
+    @Column(name = "full_name")
     private String fullName;
 
-    @Column(nullable = false, unique = true, length = 150)
-    private String email;
-
-    @Column(length = 40)
+    @Column(name = "phone")
     private String phone;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
-    private String passwordHash;
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    @Column(nullable = false)
+    private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false)
     private Role role;
 
-    @Column(name = "created_at")
-    private Instant createdAt;
+    @Column(nullable = false)
+    private Boolean status = true;
 
-    /* ===============================
-       OWNER → TENANTS RELATION
-       =============================== */
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id")
-    private User owner;
+    @Column(name = "profile_picture")
+    private String profilePicture;
 
-    @Builder.Default
-    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
-    private List<User> tenants = new ArrayList<>();
+    @Column(name = "address")
+    private String address;
+
+    @Column(name = "notification_email", nullable = false)
+    private Boolean notificationEmail = true;
+
+    @Column(name = "notification_push", nullable = false)
+    private Boolean notificationPush = true;
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public Boolean getStatus() {
+        return status;
+    }
+
+    public void setStatus(Boolean status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public Boolean getNotificationEmail() {
+        return notificationEmail;
+    }
+
+    public void setNotificationEmail(Boolean notificationEmail) {
+        this.notificationEmail = notificationEmail;
+    }
+
+    public Boolean getNotificationPush() {
+        return notificationPush;
+    }
+
+    public void setNotificationPush(Boolean notificationPush) {
+        this.notificationPush = notificationPush;
+    }
 }

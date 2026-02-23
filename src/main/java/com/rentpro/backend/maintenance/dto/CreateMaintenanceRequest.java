@@ -1,11 +1,17 @@
 package com.rentpro.backend.maintenance.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import com.rentpro.backend.maintenance.MaintenancePriority;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 public record CreateMaintenanceRequest(
-        @NotNull Long unitId,
-        @NotBlank String title,
+        UUID leaseId,
+        UUID propertyId,
+        UUID unitId,
+        String title,
         String description,
-        String priority // LOW/MEDIUM/HIGH (optional)
+        MaintenancePriority priority,
+        String imageUrl,
+        String assignedTechnician,
+        BigDecimal maintenanceCost
 ) {}

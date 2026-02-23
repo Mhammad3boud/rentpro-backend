@@ -1,13 +1,9 @@
 package com.rentpro.backend.property;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
-public interface PropertyRepository extends JpaRepository<Property, Long> {
-
-    List<Property> findAllByOwner_Id(Long ownerId);
-
-    Optional<Property> findByIdAndOwner_Id(Long id, Long ownerId);
+public interface PropertyRepository extends JpaRepository<Property, UUID> {
+    List<Property> findByOwner_UserId(UUID ownerId);
 }

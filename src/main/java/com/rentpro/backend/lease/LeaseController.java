@@ -1,91 +1,87 @@
 package com.rentpro.backend.lease;
 
-import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.Authentication;
-
+import com.rentpro.backend.lease.dto.AssignTenantRequest;
 import com.rentpro.backend.lease.dto.CreateLeaseRequest;
-// import com.rentpro.backend.lease.dto.EndLeaseRequest;
-import com.rentpro.backend.user.User;
-import com.rentpro.backend.user.UserRepository;
+import com.rentpro.backend.lease.dto.UpdateLeaseRequest;
+import com.rentpro.backend.security.JwtUserContext;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/leases")
-@PreAuthorize("hasRole('OWNER')")
+@RequestMapping("/api/leases")
 public class LeaseController {
 
     private final LeaseService leaseService;
-    private final UserRepository userRepo;
 
-    public LeaseController(LeaseService leaseService, UserRepository userRepo) {
+    public LeaseController(LeaseService leaseService) {
         this.leaseService = leaseService;
-        this.userRepo = userRepo;
     }
 
-    // Create a new lease (assign tenant to unit)
+    // Create new lease
     @PostMapping
-    public ResponseEntity<LeaseResponse> create(
-            @Valid @RequestBody CreateLeaseRequest req,
-            Authentication auth) {
-        User owner = userRepo.findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
-
-        Lease lease = leaseService.createLease(
-                owner.getId(),
-                req.unitId(),
-                req.tenantId(),
-                req.startDate(),
-                req.endDate(),
-                req.rentAmount(),
-                req.depositAmount(),
-                req.notes());
-
-        return ResponseEntity.ok(LeaseResponse.from(lease));
+    public Lease createLease(Authentication auth,
+                             @RequestBody CreateLeaseRequest request) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID ownerId = UUID.fromString(ctx.userId());
+        return leaseService.createLease(ownerId, request);
     }
 
-    // End an active lease
-    @PostMapping("/{leaseId}/end")
-    public ResponseEntity<LeaseResponse> end(
-            @PathVariable Long leaseId,
-            @RequestParam LocalDate endDate,
-            Authentication auth) {
-        User owner = userRepo.findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
-
-        Lease lease = leaseService.endLease(owner.getId(), leaseId, endDate);
-        return ResponseEntity.ok(LeaseResponse.from(lease));
+    // Get current user's leases (for owners)
+    @GetMapping("/my-leases")
+    public List<Lease> getCurrentUserLeases(Authentication auth) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID userId = UUID.fromString(ctx.userId());
+        return leaseService.getOwnerLeases(userId);
     }
 
-    // Get active lease for a unit
-    @GetMapping("/unit/{unitId}/active")
-    public ResponseEntity<LeaseResponse> active(
-            @PathVariable Long unitId,
-            Authentication auth) {
-        User owner = userRepo.findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
-
-        Lease lease = leaseService.getActiveLease(owner.getId(), unitId);
-
-        return lease == null
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.ok(LeaseResponse.from(lease));
+    // Get tenant's leases
+    @GetMapping("/tenant-leases")
+    public List<Lease> getTenantLeases(Authentication auth) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID tenantUserId = UUID.fromString(ctx.userId());
+        return leaseService.getTenantLeases(tenantUserId);
     }
 
-    // Full lease history for a unit
-    @GetMapping("/unit/{unitId}/history")
-    public ResponseEntity<List<LeaseResponse>> history(@PathVariable Long unitId, Authentication auth) {
-        User owner = userRepo.findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+    // Get specific lease by ID
+    @GetMapping("/{leaseId}")
+    public Lease getLeaseById(@PathVariable UUID leaseId) {
+        return leaseService.getLeaseById(leaseId);
+    }
 
-        return ResponseEntity.ok(
-                leaseService.getUnitHistory(owner.getId(), unitId)
-                        .stream()
-                        .map(LeaseResponse::from)
-                        .toList());
+    // Update existing lease
+    @PutMapping("/{leaseId}")
+    public Lease updateLease(@PathVariable UUID leaseId,
+                             @RequestBody UpdateLeaseRequest request) {
+        return leaseService.updateLease(leaseId, request);
+    }
+
+    // Get lease by tenant ID
+    @GetMapping("/tenant/{tenantId}")
+    public Lease getLeaseByTenantId(@PathVariable UUID tenantId) {
+        return leaseService.getLeaseByTenantId(tenantId);
+    }
+
+    // Assign a tenant to a property/unit (creates a new lease)
+    @PostMapping("/assign")
+    public Lease assignTenant(Authentication auth,
+                              @RequestBody AssignTenantRequest request) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID ownerId = UUID.fromString(ctx.userId());
+        return leaseService.assignTenant(ownerId, request);
+    }
+
+    // Terminate a lease (sets status to TERMINATED)
+    @PutMapping("/{leaseId}/terminate")
+    public Lease terminateLease(@PathVariable UUID leaseId) {
+        return leaseService.terminateLease(leaseId);
+    }
+
+    // Delete a lease permanently
+    @DeleteMapping("/{leaseId}")
+    public void deleteLease(@PathVariable UUID leaseId) {
+        leaseService.deleteLease(leaseId);
     }
 }

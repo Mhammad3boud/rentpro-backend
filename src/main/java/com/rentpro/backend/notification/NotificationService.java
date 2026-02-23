@@ -2,63 +2,63 @@ package com.rentpro.backend.notification;
 
 import com.rentpro.backend.user.User;
 import com.rentpro.backend.user.UserRepository;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class NotificationService {
 
-    private final NotificationRepository repo;
-    private final UserRepository userRepo;
-    private final EmailService emailService;
+    private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
 
-    public NotificationService(NotificationRepository repo, UserRepository userRepo, EmailService emailService) {
-        this.repo = repo;
-        this.userRepo = userRepo;
-        this.emailService = emailService;
+    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository) {
+        this.notificationRepository = notificationRepository;
+        this.userRepository = userRepository;
+    }
+
+    public List<Notification> getNotificationsForUser(UUID userId) {
+        return notificationRepository.findByUserUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    public List<Notification> getUnreadNotificationsForUser(UUID userId) {
+        return notificationRepository.findByUserUserIdAndIsReadFalseOrderByCreatedAtDesc(userId);
+    }
+
+    public long getUnreadCount(UUID userId) {
+        return notificationRepository.countByUserUserIdAndIsReadFalse(userId);
     }
 
     @Transactional
-    public void create(Long userId, String type, String title, String message,
-                       String entityType, Long entityId, boolean sendEmail) {
+    public Notification createNotification(UUID userId, NotificationType type, String title, String message) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        User user = userRepo.findById(userId).orElseThrow();
+        Notification notification = new Notification();
+        notification.setUser(user);
+        notification.setType(type);
+        notification.setTitle(title);
+        notification.setMessage(message);
 
-        Notification n = Notification.builder()
-                .user(user)
-                .type(type)
-                .title(title)
-                .message(message)
-                .entityType(entityType)
-                .entityId(entityId)
-                .isRead(false)
-                .build();
+        return notificationRepository.save(notification);
+    }
 
-        repo.save(n);
+    @Transactional
+    public Notification markAsRead(UUID notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new IllegalArgumentException("Notification not found: " + notificationId));
+        notification.setIsRead(true);
+        return notificationRepository.save(notification);
+    }
 
-        if (sendEmail) {
-            emailService.safeSend(user.getEmail(), title, message);
+    @Transactional
+    public void markAllAsRead(UUID userId) {
+        List<Notification> unread = notificationRepository.findByUserUserIdAndIsReadFalseOrderByCreatedAtDesc(userId);
+        for (Notification notification : unread) {
+            notification.setIsRead(true);
         }
-    }
-
-    @Transactional(readOnly = true)
-    public List<Notification> listLatest(Long userId) {
-        return repo.findTop50ByUser_IdOrderByCreatedAtDesc(userId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Notification> listUnread(Long userId) {
-        return repo.findTop50ByUser_IdAndIsReadFalseOrderByCreatedAtDesc(userId);
-    }
-
-    @Transactional
-    public void setRead(Long userId, Long notificationId, boolean read) {
-        Notification n = repo.findById(notificationId).orElseThrow();
-        if (!n.getUser().getId().equals(userId)) throw new RuntimeException("Not yours");
-        n.setRead(read);
-        repo.save(n);
+        notificationRepository.saveAll(unread);
     }
 }
