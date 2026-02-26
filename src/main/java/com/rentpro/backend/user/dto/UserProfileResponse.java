@@ -11,5 +11,6 @@ public record UserProfileResponse(
         String address,
         String profilePicture,
         Boolean notificationEmail,
-        Boolean notificationPush
+        Boolean notificationPush,
+        String themePreference
 ) {}

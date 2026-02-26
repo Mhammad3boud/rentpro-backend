@@ -10,6 +10,7 @@ import java.util.UUID;
 public interface MaintenanceRepository extends JpaRepository<MaintenanceRequest, UUID> {
 
     List<MaintenanceRequest> findByTenant_TenantId(UUID tenantId);
+    List<MaintenanceRequest> findByTenant_User_UserId(UUID tenantUserId);
 
     List<MaintenanceRequest> findByProperty_Owner_UserId(UUID ownerId);
 

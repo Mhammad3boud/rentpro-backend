@@ -49,6 +49,9 @@ public class User {
     @Column(name = "notification_push", nullable = false)
     private Boolean notificationPush = true;
 
+    @Column(name = "theme_preference")
+    private String themePreference;
+
     public UUID getUserId() {
         return userId;
     }
@@ -135,5 +138,13 @@ public class User {
 
     public void setNotificationPush(Boolean notificationPush) {
         this.notificationPush = notificationPush;
+    }
+
+    public String getThemePreference() {
+        return themePreference;
+    }
+
+    public void setThemePreference(String themePreference) {
+        this.themePreference = themePreference;
     }
 }

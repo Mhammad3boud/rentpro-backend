@@ -5,5 +5,6 @@ public record UpdateProfileRequest(
         String phone,
         String address,
         Boolean notificationEmail,
-        Boolean notificationPush
+        Boolean notificationPush,
+        String themePreference
 ) {}

@@ -64,11 +64,21 @@ public class RentPaymentService {
         // Log activity
         String propertyName = lease.getProperty().getPropertyName();
         String unitNumber = lease.getUnit() != null ? lease.getUnit().getUnitNumber() : null;
+        UUID tenantUserId = lease.getTenant() != null && lease.getTenant().getUser() != null
+                ? lease.getTenant().getUser().getUserId()
+                : null;
         if (request.amountPaid() != null && request.amountPaid().compareTo(BigDecimal.ZERO) > 0) {
             activityService.logPaymentReceived(ownerId, propertyName, unitNumber, 
                     request.monthYear(), request.amountPaid().doubleValue());
+            if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
+                activityService.logPaymentReceived(tenantUserId, propertyName, unitNumber,
+                        request.monthYear(), request.amountPaid().doubleValue());
+            }
         } else {
             activityService.logPaymentUpdated(ownerId, propertyName, unitNumber, request.monthYear());
+            if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
+                activityService.logPaymentUpdated(tenantUserId, propertyName, unitNumber, request.monthYear());
+            }
         }
         
         return saved;

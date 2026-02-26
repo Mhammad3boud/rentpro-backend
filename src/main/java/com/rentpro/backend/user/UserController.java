@@ -45,7 +45,8 @@ public class UserController {
                 user.getAddress(),
                 user.getProfilePicture(),
                 user.getNotificationEmail(),
-                user.getNotificationPush()
+                user.getNotificationPush(),
+                user.getThemePreference()
         );
     }
 
@@ -73,6 +74,9 @@ public class UserController {
         if (request.notificationPush() != null) {
             user.setNotificationPush(request.notificationPush());
         }
+        if (request.themePreference() != null) {
+            user.setThemePreference(request.themePreference());
+        }
 
         userRepository.save(user);
 
@@ -85,7 +89,8 @@ public class UserController {
                 user.getAddress(),
                 user.getProfilePicture(),
                 user.getNotificationEmail(),
-                user.getNotificationPush()
+                user.getNotificationPush(),
+                user.getThemePreference()
         ));
     }
 

@@ -28,6 +28,12 @@ public class Notification {
     @Column(columnDefinition = "TEXT")
     private String message;
 
+    @Column(name = "entity_type", length = 50)
+    private String entityType;
+
+    @Column(name = "entity_id")
+    private UUID entityId;
+
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
 
@@ -49,6 +55,12 @@ public class Notification {
 
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
+
+    public String getEntityType() { return entityType; }
+    public void setEntityType(String entityType) { this.entityType = entityType; }
+
+    public UUID getEntityId() { return entityId; }
+    public void setEntityId(UUID entityId) { this.entityId = entityId; }
 
     public Boolean getIsRead() { return isRead; }
     public void setIsRead(Boolean isRead) { this.isRead = isRead; }

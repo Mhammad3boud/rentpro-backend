@@ -5,6 +5,8 @@ import com.rentpro.backend.lease.Lease;
 import com.rentpro.backend.lease.LeaseRepository;
 import com.rentpro.backend.maintenance.dto.CreateMaintenanceRequest;
 import com.rentpro.backend.maintenance.dto.UpdateMaintenanceStatusRequest;
+import com.rentpro.backend.notification.NotificationService;
+import com.rentpro.backend.notification.NotificationType;
 import com.rentpro.backend.property.Property;
 import com.rentpro.backend.property.PropertyRepository;
 import com.rentpro.backend.tenant.Tenant;
@@ -33,6 +35,7 @@ public class MaintenanceService {
     private final UnitRepository unitRepository;
     private final LeaseRepository leaseRepository;
     private final ActivityService activityService;
+    private final NotificationService notificationService;
 
     @Value("${app.upload.dir:uploads/maintenance}")
     private String uploadDir;
@@ -43,7 +46,8 @@ public class MaintenanceService {
                               PropertyRepository propertyRepository,
                               UnitRepository unitRepository,
                               LeaseRepository leaseRepository,
-                              ActivityService activityService) {
+                              ActivityService activityService,
+                              NotificationService notificationService) {
         this.repository = repository;
         this.photoRepository = photoRepository;
         this.tenantRepository = tenantRepository;
@@ -51,17 +55,22 @@ public class MaintenanceService {
         this.unitRepository = unitRepository;
         this.leaseRepository = leaseRepository;
         this.activityService = activityService;
+        this.notificationService = notificationService;
     }
 
     // Tenant creates request
-    public MaintenanceRequest createRequest(UUID userId, CreateMaintenanceRequest request) {
+    public MaintenanceRequest createRequest(UUID tenantUserId, CreateMaintenanceRequest request) {
 
         Lease lease = leaseRepository.findById(request.leaseId())
                 .orElseThrow(() -> new RuntimeException("Lease not found"));
 
-        // Try to find tenant by userId, or use the lease's tenant
-        Tenant tenant = tenantRepository.findById(userId)
-                .orElse(lease.getTenant());
+        Tenant tenant = tenantRepository.findByUser_UserId(tenantUserId)
+                .orElseThrow(() -> new RuntimeException("Tenant not found for current user"));
+
+        // Security check: tenant can only create requests for their own lease
+        if (!lease.getTenant().getTenantId().equals(tenant.getTenantId())) {
+            throw new RuntimeException("Unauthorized");
+        }
 
         // Get property from request, or fall back to lease's property
         Property property;
@@ -96,8 +105,28 @@ public class MaintenanceService {
         
         // Log activity
         UUID ownerId = property.getOwner().getUserId();
+        UUID activityTenantUserId = tenant.getUser() != null ? tenant.getUser().getUserId() : null;
         String unitNumber = maintenance.getUnit() != null ? maintenance.getUnit().getUnitNumber() : null;
         activityService.logMaintenanceCreated(ownerId, property.getPropertyName(), unitNumber, request.title());
+        if (activityTenantUserId != null && !activityTenantUserId.equals(ownerId)) {
+            activityService.logMaintenanceCreated(activityTenantUserId, property.getPropertyName(), unitNumber, request.title());
+        }
+
+        // Notify owner when tenant raises a new maintenance request.
+        String location = unitNumber != null
+                ? property.getPropertyName() + " - Unit " + unitNumber
+                : property.getPropertyName();
+        String tenantName = tenant.getFullName() != null ? tenant.getFullName() : "Tenant";
+        String title = "New maintenance request";
+        String message = tenantName + " reported \"" + request.title() + "\" at " + location + ".";
+        notificationService.createNotification(
+                ownerId,
+                NotificationType.MAINTENANCE_UPDATE,
+                title,
+                message,
+                "MAINTENANCE_REQUEST",
+                saved.getRequestId()
+        );
         
         return saved;
     }
@@ -128,6 +157,25 @@ public class MaintenanceService {
         // Log activity
         activityService.logMaintenanceStatusChanged(ownerId, maintenance.getTitle(), 
                 oldStatus.name(), request.status().name());
+        UUID tenantUserId = maintenance.getTenant() != null && maintenance.getTenant().getUser() != null
+                ? maintenance.getTenant().getUser().getUserId()
+                : null;
+        if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
+            activityService.logMaintenanceStatusChanged(tenantUserId, maintenance.getTitle(),
+                    oldStatus.name(), request.status().name());
+
+            String tenantTitle = "Maintenance status updated";
+            String tenantMessage = "\"" + maintenance.getTitle() + "\" is now "
+                    + request.status().name().replace('_', ' ') + ".";
+            notificationService.createNotification(
+                    tenantUserId,
+                    NotificationType.MAINTENANCE_UPDATE,
+                    tenantTitle,
+                    tenantMessage,
+                    "MAINTENANCE_REQUEST",
+                    saved.getRequestId()
+            );
+        }
         
         return saved;
     }
@@ -136,8 +184,8 @@ public class MaintenanceService {
         return repository.findByProperty_Owner_UserId(ownerId);
     }
 
-    public List<MaintenanceRequest> getTenantRequests(UUID tenantId) {
-        return repository.findByTenant_TenantId(tenantId);
+    public List<MaintenanceRequest> getTenantRequests(UUID tenantUserId) {
+        return repository.findByTenant_User_UserId(tenantUserId);
     }
 
     public MaintenanceRequest getRequestById(UUID requestId) {

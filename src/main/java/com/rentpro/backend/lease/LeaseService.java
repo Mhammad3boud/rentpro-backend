@@ -97,6 +97,10 @@ public class LeaseService {
         // Log activity
         String unitNumber = unit != null ? unit.getUnitNumber() : null;
         activityService.logLeaseCreated(ownerId, tenant.getFullName(), property.getPropertyName(), unitNumber);
+        UUID tenantUserId = tenant.getUser() != null ? tenant.getUser().getUserId() : null;
+        if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
+            activityService.logLeaseCreated(tenantUserId, tenant.getFullName(), property.getPropertyName(), unitNumber);
+        }
         
         return saved;
     }
@@ -184,6 +188,10 @@ public class LeaseService {
         // Log activity
         String unitNumber = unit != null ? unit.getUnitNumber() : null;
         activityService.logTenantAssigned(ownerId, tenant.getFullName(), property.getPropertyName(), unitNumber);
+        UUID tenantUserId = tenant.getUser() != null ? tenant.getUser().getUserId() : null;
+        if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
+            activityService.logTenantAssigned(tenantUserId, tenant.getFullName(), property.getPropertyName(), unitNumber);
+        }
         
         return saved;
     }
@@ -222,6 +230,12 @@ public class LeaseService {
             String unitNumber = lease.getUnit() != null ? lease.getUnit().getUnitNumber() : null;
             UUID ownerId = lease.getProperty().getOwner().getUserId();
             activityService.logLeaseUpdated(ownerId, propertyName, unitNumber, changes.toString().trim());
+            UUID tenantUserId = lease.getTenant() != null && lease.getTenant().getUser() != null
+                    ? lease.getTenant().getUser().getUserId()
+                    : null;
+            if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
+                activityService.logLeaseUpdated(tenantUserId, propertyName, unitNumber, changes.toString().trim());
+            }
         }
         
         return saved;

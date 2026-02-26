@@ -69,6 +69,8 @@ public class NotificationController {
                 notification.getType().name(),
                 notification.getTitle(),
                 notification.getMessage(),
+                notification.getEntityType(),
+                notification.getEntityId() != null ? notification.getEntityId().toString() : null,
                 notification.getIsRead(),
                 notification.getCreatedAt().toString()
         );
@@ -79,6 +81,8 @@ public class NotificationController {
             String type,
             String title,
             String message,
+            String entityType,
+            String entityId,
             boolean isRead,
             String createdAt
     ) {}

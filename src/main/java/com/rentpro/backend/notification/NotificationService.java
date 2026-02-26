@@ -33,6 +33,12 @@ public class NotificationService {
 
     @Transactional
     public Notification createNotification(UUID userId, NotificationType type, String title, String message) {
+        return createNotification(userId, type, title, message, null, null);
+    }
+
+    @Transactional
+    public Notification createNotification(UUID userId, NotificationType type, String title, String message,
+                                           String entityType, UUID entityId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
@@ -41,6 +47,8 @@ public class NotificationService {
         notification.setType(type);
         notification.setTitle(title);
         notification.setMessage(message);
+        notification.setEntityType(entityType);
+        notification.setEntityId(entityId);
 
         return notificationRepository.save(notification);
     }
