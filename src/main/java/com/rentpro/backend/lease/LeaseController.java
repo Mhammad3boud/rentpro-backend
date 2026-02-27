@@ -1,7 +1,10 @@
 package com.rentpro.backend.lease;
 
 import com.rentpro.backend.lease.dto.AssignTenantRequest;
+import com.rentpro.backend.lease.dto.CheckInLeaseRequest;
+import com.rentpro.backend.lease.dto.CheckOutLeaseRequest;
 import com.rentpro.backend.lease.dto.CreateLeaseRequest;
+import com.rentpro.backend.lease.dto.TerminateLeaseRequest;
 import com.rentpro.backend.lease.dto.UpdateLeaseRequest;
 import com.rentpro.backend.security.JwtUserContext;
 import org.springframework.security.core.Authentication;
@@ -75,8 +78,32 @@ public class LeaseController {
 
     // Terminate a lease (sets status to TERMINATED)
     @PutMapping("/{leaseId}/terminate")
-    public Lease terminateLease(@PathVariable UUID leaseId) {
-        return leaseService.terminateLease(leaseId);
+    public Lease terminateLease(Authentication auth,
+                               @PathVariable UUID leaseId,
+                               @RequestBody(required = false) TerminateLeaseRequest request) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID ownerId = UUID.fromString(ctx.userId());
+        return leaseService.terminateLease(ownerId, ctx.role(), leaseId, request);
+    }
+
+    // Check in a lease (owner confirms move-in)
+    @PutMapping("/{leaseId}/check-in")
+    public Lease checkInLease(Authentication auth,
+                              @PathVariable UUID leaseId,
+                              @RequestBody(required = false) CheckInLeaseRequest request) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID ownerId = UUID.fromString(ctx.userId());
+        return leaseService.checkInLease(ownerId, ctx.role(), leaseId, request);
+    }
+
+    // Check out a lease (owner confirms move-out)
+    @PutMapping("/{leaseId}/check-out")
+    public Lease checkOutLease(Authentication auth,
+                               @PathVariable UUID leaseId,
+                               @RequestBody CheckOutLeaseRequest request) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID ownerId = UUID.fromString(ctx.userId());
+        return leaseService.checkOutLease(ownerId, ctx.role(), leaseId, request);
     }
 
     // Delete a lease permanently

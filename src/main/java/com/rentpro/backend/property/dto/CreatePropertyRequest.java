@@ -2,6 +2,7 @@ package com.rentpro.backend.property.dto;
 
 import com.rentpro.backend.property.PropertyType;
 import com.rentpro.backend.property.UsageType;
+import com.rentpro.backend.property.AssetCategory;
 import java.util.List;
 
 /**
@@ -13,6 +14,7 @@ public record CreatePropertyRequest(
         String propertyName,
         PropertyType propertyType,
         UsageType usageType,
+        AssetCategory assetCategory,
         String address,
         String region,
         String postcode,
@@ -49,9 +51,27 @@ public record CreatePropertyRequest(
     public PropertyType getEffectivePropertyType() {
         if (propertyType != null) return propertyType;
         if (meta != null && meta.propertyType() != null) {
-            return PropertyType.valueOf(meta.propertyType().toUpperCase());
+            try {
+                return PropertyType.valueOf(meta.propertyType().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return PropertyType.STANDALONE;
+            }
         }
         return PropertyType.STANDALONE;
+    }
+
+    public AssetCategory getEffectiveAssetCategory() {
+        if (assetCategory != null) return assetCategory;
+        if (meta != null && meta.propertyType() != null) {
+            try {
+                return AssetCategory.valueOf(meta.propertyType().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                // fall through
+            }
+        }
+        return getEffectivePropertyType() == PropertyType.MULTI_UNIT
+                ? AssetCategory.APARTMENT
+                : AssetCategory.HOUSE;
     }
     
     // Helper to get usage type from either format

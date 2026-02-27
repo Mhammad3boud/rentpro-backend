@@ -28,6 +28,10 @@ public class Property {
     @Column(name = "usage_type")
     private UsageType usageType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_category")
+    private AssetCategory assetCategory;
+
     private String address;
     private String region;
     private String postcode;
@@ -53,6 +57,8 @@ public class Property {
     public void setPropertyType(PropertyType propertyType) { this.propertyType = propertyType; }
     public UsageType getUsageType() { return usageType; }
     public void setUsageType(UsageType usageType) { this.usageType = usageType; }
+    public AssetCategory getAssetCategory() { return assetCategory; }
+    public void setAssetCategory(AssetCategory assetCategory) { this.assetCategory = assetCategory; }
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
     public String getRegion() { return region; }

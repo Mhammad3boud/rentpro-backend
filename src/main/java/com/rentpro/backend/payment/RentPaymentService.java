@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,6 +45,8 @@ public class RentPaymentService {
         RentPayment payment = rentPaymentRepository
                 .findByLease_LeaseIdAndMonthYear(request.leaseId(), request.monthYear())
                 .orElseGet(RentPayment::new);
+
+        validatePaymentWindow(lease, request.monthYear());
 
         payment.setLease(lease);
         payment.setMonthYear(request.monthYear());
@@ -153,5 +156,83 @@ public class RentPaymentService {
     public RentPayment getPaymentById(UUID paymentId) {
         return rentPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
+    }
+
+    public RentPayment markPaymentAsUnpaid(UUID ownerId, UUID paymentId) {
+        RentPayment payment = rentPaymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
+
+        Lease lease = payment.getLease();
+        if (!lease.getProperty().getOwner().getUserId().equals(ownerId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        payment.setAmountPaid(BigDecimal.ZERO);
+        payment.setPaidDate(null);
+        payment.setPaymentMethod(null);
+        payment.setPaymentStatus(calculateStatus(
+                payment.getAmountExpected(),
+                payment.getAmountPaid(),
+                payment.getDueDate()
+        ));
+
+        RentPayment saved = rentPaymentRepository.save(payment);
+
+        String propertyName = lease.getProperty().getPropertyName();
+        String unitNumber = lease.getUnit() != null ? lease.getUnit().getUnitNumber() : null;
+        UUID tenantUserId = lease.getTenant() != null && lease.getTenant().getUser() != null
+                ? lease.getTenant().getUser().getUserId()
+                : null;
+
+        activityService.logPaymentUpdated(ownerId, propertyName, unitNumber, payment.getMonthYear());
+        if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
+            activityService.logPaymentUpdated(tenantUserId, propertyName, unitNumber, payment.getMonthYear());
+        }
+
+        return saved;
+    }
+
+    private void validatePaymentWindow(Lease lease, String monthYear) {
+        YearMonth paymentMonth;
+        try {
+            paymentMonth = YearMonth.parse(monthYear);
+        } catch (Exception ex) {
+            throw new RuntimeException("Invalid month format. Use YYYY-MM");
+        }
+
+        if (lease.getEndDate() != null) {
+            YearMonth leaseEndMonth = YearMonth.from(lease.getEndDate());
+            if (paymentMonth.isAfter(leaseEndMonth)) {
+                throw new RuntimeException("Cannot record payment after lease end/termination date");
+            }
+        }
+
+        if (lease.getLeaseStatus() != null && lease.getLeaseStatus().name().equals("TERMINATED") && lease.getEndDate() == null) {
+            throw new RuntimeException("Cannot record payment for terminated lease");
+        }
+    }
+
+    public void deletePayment(UUID ownerId, UUID paymentId) {
+        RentPayment payment = rentPaymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
+
+        Lease lease = payment.getLease();
+        if (!lease.getProperty().getOwner().getUserId().equals(ownerId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        String monthYear = payment.getMonthYear();
+        String propertyName = lease.getProperty().getPropertyName();
+        String unitNumber = lease.getUnit() != null ? lease.getUnit().getUnitNumber() : null;
+        UUID tenantUserId = lease.getTenant() != null && lease.getTenant().getUser() != null
+                ? lease.getTenant().getUser().getUserId()
+                : null;
+
+        rentPaymentRepository.delete(payment);
+
+        activityService.logPaymentUpdated(ownerId, propertyName, unitNumber, monthYear);
+        if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
+            activityService.logPaymentUpdated(tenantUserId, propertyName, unitNumber, monthYear);
+        }
     }
 }

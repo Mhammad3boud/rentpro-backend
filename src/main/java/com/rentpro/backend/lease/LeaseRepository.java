@@ -38,6 +38,7 @@ public interface LeaseRepository extends JpaRepository<Lease, UUID> {
         select count(l)
         from Lease l
         where l.property.owner.userId = :ownerId
+          and l.leaseStatus = com.rentpro.backend.lease.LeaseStatus.ACTIVE
           and l.startDate <= :currentDate
           and (l.endDate is null or l.endDate >= :currentDate)
     """)

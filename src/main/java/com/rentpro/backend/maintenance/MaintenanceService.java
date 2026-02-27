@@ -4,6 +4,7 @@ import com.rentpro.backend.activity.ActivityService;
 import com.rentpro.backend.lease.Lease;
 import com.rentpro.backend.lease.LeaseRepository;
 import com.rentpro.backend.maintenance.dto.CreateMaintenanceRequest;
+import com.rentpro.backend.maintenance.dto.UpdateMaintenanceRequest;
 import com.rentpro.backend.maintenance.dto.UpdateMaintenanceStatusRequest;
 import com.rentpro.backend.notification.NotificationService;
 import com.rentpro.backend.notification.NotificationType;
@@ -13,6 +14,7 @@ import com.rentpro.backend.tenant.Tenant;
 import com.rentpro.backend.tenant.TenantRepository;
 import com.rentpro.backend.unit.Unit;
 import com.rentpro.backend.unit.UnitRepository;
+import com.rentpro.backend.lease.LeaseStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -58,8 +60,18 @@ public class MaintenanceService {
         this.notificationService = notificationService;
     }
 
+    public MaintenanceRequest createRequest(UUID currentUserId, String role, CreateMaintenanceRequest request) {
+        if ("OWNER".equalsIgnoreCase(role)) {
+            return createRequestAsOwner(currentUserId, request);
+        }
+        return createRequestAsTenant(currentUserId, request);
+    }
+
     // Tenant creates request
-    public MaintenanceRequest createRequest(UUID tenantUserId, CreateMaintenanceRequest request) {
+    private MaintenanceRequest createRequestAsTenant(UUID tenantUserId, CreateMaintenanceRequest request) {
+        if (request.leaseId() == null) {
+            throw new RuntimeException("Lease is required for tenant maintenance requests");
+        }
 
         Lease lease = leaseRepository.findById(request.leaseId())
                 .orElseThrow(() -> new RuntimeException("Lease not found"));
@@ -70,6 +82,9 @@ public class MaintenanceService {
         // Security check: tenant can only create requests for their own lease
         if (!lease.getTenant().getTenantId().equals(tenant.getTenantId())) {
             throw new RuntimeException("Unauthorized");
+        }
+        if (lease.getLeaseStatus() != LeaseStatus.ACTIVE) {
+            throw new RuntimeException("Cannot create maintenance request for non-active lease");
         }
 
         // Get property from request, or fall back to lease's property
@@ -131,6 +146,80 @@ public class MaintenanceService {
         return saved;
     }
 
+    // Owner can create request even without a lease/tenant.
+    private MaintenanceRequest createRequestAsOwner(UUID ownerId, CreateMaintenanceRequest request) {
+        Lease lease = null;
+        if (request.leaseId() != null) {
+            lease = leaseRepository.findById(request.leaseId())
+                    .orElseThrow(() -> new RuntimeException("Lease not found"));
+            if (!lease.getProperty().getOwner().getUserId().equals(ownerId)) {
+                throw new RuntimeException("Unauthorized");
+            }
+        }
+
+        Property property;
+        if (request.propertyId() != null) {
+            property = propertyRepository.findById(request.propertyId())
+                    .orElseThrow(() -> new RuntimeException("Property not found"));
+            if (!property.getOwner().getUserId().equals(ownerId)) {
+                throw new RuntimeException("Unauthorized");
+            }
+            if (lease != null && !lease.getProperty().getPropertyId().equals(property.getPropertyId())) {
+                throw new RuntimeException("Lease does not belong to selected property");
+            }
+        } else if (lease != null) {
+            property = lease.getProperty();
+        } else {
+            throw new RuntimeException("Property is required");
+        }
+
+        Unit unit = null;
+        if (request.unitId() != null) {
+            unit = unitRepository.findById(request.unitId())
+                    .orElseThrow(() -> new RuntimeException("Unit not found"));
+            if (!unit.getProperty().getPropertyId().equals(property.getPropertyId())) {
+                throw new RuntimeException("Unit does not belong to selected property");
+            }
+        } else if (lease != null && lease.getUnit() != null) {
+            unit = lease.getUnit();
+        }
+
+        Tenant tenant = lease != null ? lease.getTenant() : null;
+
+        MaintenanceRequest maintenance = new MaintenanceRequest();
+        maintenance.setTenant(tenant);
+        maintenance.setLease(lease);
+        maintenance.setProperty(property);
+        maintenance.setUnit(unit);
+        maintenance.setTitle(request.title());
+        maintenance.setDescription(request.description());
+        maintenance.setPriority(request.priority() != null ? request.priority() : MaintenancePriority.MEDIUM);
+        maintenance.setImageUrl(request.imageUrl());
+        maintenance.setAssignedTechnician(request.assignedTechnician());
+        maintenance.setMaintenanceCost(request.maintenanceCost());
+
+        MaintenanceRequest saved = repository.save(maintenance);
+
+        String unitNumber = unit != null ? unit.getUnitNumber() : null;
+        activityService.logMaintenanceCreated(ownerId, property.getPropertyName(), unitNumber, request.title());
+
+        UUID tenantUserId = tenant != null && tenant.getUser() != null ? tenant.getUser().getUserId() : null;
+        if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
+            String tenantTitle = "Maintenance request created";
+            String tenantMessage = "A maintenance request \"" + request.title() + "\" was created for your property.";
+            notificationService.createNotification(
+                    tenantUserId,
+                    NotificationType.MAINTENANCE_UPDATE,
+                    tenantTitle,
+                    tenantMessage,
+                    "MAINTENANCE_REQUEST",
+                    saved.getRequestId()
+            );
+        }
+
+        return saved;
+    }
+
     // Owner updates status
     public MaintenanceRequest updateStatus(UUID ownerId,
                                            UUID requestId,
@@ -178,6 +267,73 @@ public class MaintenanceService {
         }
         
         return saved;
+    }
+
+    public MaintenanceRequest updateRequest(UUID ownerId,
+                                            UUID requestId,
+                                            UpdateMaintenanceRequest request) {
+        MaintenanceRequest maintenance = repository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        if (!maintenance.getProperty().getOwner().getUserId().equals(ownerId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        Lease lease = null;
+        if (request.leaseId() != null) {
+            lease = leaseRepository.findById(request.leaseId())
+                    .orElseThrow(() -> new RuntimeException("Lease not found"));
+            if (!lease.getProperty().getOwner().getUserId().equals(ownerId)) {
+                throw new RuntimeException("Unauthorized");
+            }
+        }
+
+        Property property = maintenance.getProperty();
+        if (request.propertyId() != null) {
+            property = propertyRepository.findById(request.propertyId())
+                    .orElseThrow(() -> new RuntimeException("Property not found"));
+            if (!property.getOwner().getUserId().equals(ownerId)) {
+                throw new RuntimeException("Unauthorized");
+            }
+        } else if (lease != null) {
+            property = lease.getProperty();
+        }
+
+        if (lease != null && !lease.getProperty().getPropertyId().equals(property.getPropertyId())) {
+            throw new RuntimeException("Lease does not belong to selected property");
+        }
+
+        Unit unit = null;
+        if (request.unitId() != null) {
+            unit = unitRepository.findById(request.unitId())
+                    .orElseThrow(() -> new RuntimeException("Unit not found"));
+            if (!unit.getProperty().getPropertyId().equals(property.getPropertyId())) {
+                throw new RuntimeException("Unit does not belong to selected property");
+            }
+        } else if (lease != null && lease.getUnit() != null) {
+            unit = lease.getUnit();
+        }
+
+        if (request.title() != null) maintenance.setTitle(request.title());
+        if (request.description() != null) maintenance.setDescription(request.description());
+        if (request.priority() != null) maintenance.setPriority(request.priority());
+        maintenance.setAssignedTechnician(request.assignedTechnician());
+        maintenance.setMaintenanceCost(request.maintenanceCost());
+        maintenance.setLease(lease);
+        maintenance.setProperty(property);
+        maintenance.setUnit(unit);
+        maintenance.setTenant(lease != null ? lease.getTenant() : null);
+
+        if (request.status() != null) {
+            maintenance.setStatus(request.status());
+            if (request.status() == MaintenanceStatus.RESOLVED) {
+                maintenance.setResolvedAt(LocalDateTime.now());
+            } else {
+                maintenance.setResolvedAt(null);
+            }
+        }
+
+        return repository.save(maintenance);
     }
 
     public List<MaintenanceRequest> getOwnerRequests(UUID ownerId) {

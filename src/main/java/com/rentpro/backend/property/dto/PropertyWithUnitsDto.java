@@ -1,6 +1,7 @@
 package com.rentpro.backend.property.dto;
 
 import com.rentpro.backend.property.Property;
+import com.rentpro.backend.property.AssetCategory;
 import com.rentpro.backend.property.PropertyType;
 import com.rentpro.backend.property.UsageType;
 import com.rentpro.backend.unit.Unit;
@@ -13,6 +14,7 @@ public record PropertyWithUnitsDto(
         UUID propertyId,
         String propertyName,
         PropertyType propertyType,
+        AssetCategory assetCategory,
         UsageType usageType,
         String address,
         String region,
@@ -43,6 +45,7 @@ public record PropertyWithUnitsDto(
                 property.getPropertyId(),
                 property.getPropertyName(),
                 property.getPropertyType(),
+                property.getAssetCategory(),
                 property.getUsageType(),
                 property.getAddress(),
                 property.getRegion(),

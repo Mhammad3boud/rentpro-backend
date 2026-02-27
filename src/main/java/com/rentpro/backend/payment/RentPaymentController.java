@@ -49,4 +49,22 @@ public class RentPaymentController {
     public RentPayment getPaymentById(@PathVariable UUID paymentId) {
         return rentPaymentService.getPaymentById(paymentId);
     }
+
+    // Owner marks a payment as unpaid
+    @PatchMapping("/{paymentId}/unpaid")
+    public RentPayment markPaymentAsUnpaid(Authentication auth,
+                                           @PathVariable UUID paymentId) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID ownerId = UUID.fromString(ctx.userId());
+        return rentPaymentService.markPaymentAsUnpaid(ownerId, paymentId);
+    }
+
+    // Owner deletes a payment record
+    @DeleteMapping("/{paymentId}")
+    public void deletePayment(Authentication auth,
+                              @PathVariable UUID paymentId) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID ownerId = UUID.fromString(ctx.userId());
+        rentPaymentService.deletePayment(ownerId, paymentId);
+    }
 }

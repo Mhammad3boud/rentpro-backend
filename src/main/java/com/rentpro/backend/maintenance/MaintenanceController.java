@@ -1,6 +1,7 @@
 package com.rentpro.backend.maintenance;
 
 import com.rentpro.backend.maintenance.dto.CreateMaintenanceRequest;
+import com.rentpro.backend.maintenance.dto.UpdateMaintenanceRequest;
 import com.rentpro.backend.maintenance.dto.UpdateMaintenanceStatusRequest;
 import com.rentpro.backend.security.JwtUserContext;
 import org.springframework.http.MediaType;
@@ -28,8 +29,8 @@ public class MaintenanceController {
     public MaintenanceRequest createRequest(Authentication auth,
                                            @RequestBody CreateMaintenanceRequest request) {
         JwtUserContext ctx = (JwtUserContext) auth.getDetails();
-        UUID tenantId = UUID.fromString(ctx.userId());
-        return service.createRequest(tenantId, request);
+        UUID userId = UUID.fromString(ctx.userId());
+        return service.createRequest(userId, ctx.role(), request);
     }
 
     // Get current user's maintenance requests (for tenants)
@@ -56,6 +57,16 @@ public class MaintenanceController {
         JwtUserContext ctx = (JwtUserContext) auth.getDetails();
         UUID ownerId = UUID.fromString(ctx.userId());
         return service.updateStatus(ownerId, requestId, request);
+    }
+
+    // Update maintenance request details
+    @PutMapping("/requests/{requestId}")
+    public MaintenanceRequest updateRequest(Authentication auth,
+                                            @PathVariable UUID requestId,
+                                            @RequestBody UpdateMaintenanceRequest request) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID ownerId = UUID.fromString(ctx.userId());
+        return service.updateRequest(ownerId, requestId, request);
     }
 
     // Get specific maintenance request by ID

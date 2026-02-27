@@ -49,6 +49,9 @@ public class TenantService {
         tenantUser.setEmail(request.email());
         tenantUser.setPassword(passwordEncoder.encode(request.password()));
         tenantUser.setRole(Role.TENANT);
+        tenantUser.setFullName(request.fullName());
+        tenantUser.setPhone(request.phone());
+        tenantUser.setAddress(request.address());
         tenantUser = userRepository.save(tenantUser);
 
         // Create tenant profile

@@ -38,6 +38,7 @@ public class PropertyService {
         property.setPropertyName(request.getEffectivePropertyName());
         property.setPropertyType(request.getEffectivePropertyType());
         property.setUsageType(request.getEffectiveUsageType());
+        property.setAssetCategory(request.getEffectiveAssetCategory());
         property.setAddress(request.address());
         property.setRegion(request.getEffectiveRegion());
         property.setPostcode(request.getEffectivePostcode());
@@ -86,5 +87,112 @@ public class PropertyService {
                     return PropertyWithUnitsDto.fromEntity(property, units);
                 })
                 .toList();
+    }
+
+    @Transactional
+    public Property updateProperty(UUID ownerId, UUID propertyId, CreatePropertyRequest request) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+
+        if (!property.getOwner().getUserId().equals(ownerId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        String propertyName = trimToNull(request.propertyName());
+        if (propertyName == null) {
+            propertyName = trimToNull(request.title());
+        }
+        if (propertyName != null) {
+            property.setPropertyName(propertyName);
+        }
+
+        PropertyType propertyType = resolvePropertyType(request);
+        if (propertyType != null) {
+            property.setPropertyType(propertyType);
+        }
+
+        AssetCategory assetCategory = resolveAssetCategory(request);
+        if (assetCategory != null) {
+            property.setAssetCategory(assetCategory);
+        }
+
+        UsageType usageType = resolveUsageType(request);
+        if (usageType != null) {
+            property.setUsageType(usageType);
+        }
+
+        if (request.address() != null) property.setAddress(trimToNull(request.address()));
+        if (request.region() != null || (request.meta() != null && request.meta().region() != null)) {
+            property.setRegion(trimToNull(request.getEffectiveRegion()));
+        }
+        if (request.postcode() != null || (request.meta() != null && request.meta().postcode() != null)) {
+            property.setPostcode(trimToNull(request.getEffectivePostcode()));
+        }
+        if (request.latitude() != null) property.setLatitude(request.latitude());
+        if (request.longitude() != null) property.setLongitude(request.longitude());
+
+        if (request.waterMeterNo() != null || request.waterMeterNumber() != null) {
+            property.setWaterMeterNo(trimToNull(request.getEffectiveWaterMeterNo()));
+        }
+        if (request.electricityMeterNo() != null || (request.meta() != null && request.meta().electricityMeterNumber() != null)) {
+            property.setElectricityMeterNo(trimToNull(request.getEffectiveElectricityMeterNo()));
+        }
+
+        return propertyRepository.save(property);
+    }
+
+    @Transactional
+    public void deleteProperty(UUID ownerId, UUID propertyId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+
+        if (!property.getOwner().getUserId().equals(ownerId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        propertyRepository.delete(property);
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private PropertyType resolvePropertyType(CreatePropertyRequest request) {
+        if (request.propertyType() != null) return request.propertyType();
+        return null;
+    }
+
+    private AssetCategory resolveAssetCategory(CreatePropertyRequest request) {
+        if (request.assetCategory() != null) return request.assetCategory();
+        if (request.meta() != null && request.meta().propertyType() != null) {
+            try {
+                return AssetCategory.valueOf(request.meta().propertyType().trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return null;
+    }
+
+    private UsageType resolveUsageType(CreatePropertyRequest request) {
+        if (request.usageType() != null) return request.usageType();
+        if (request.meta() != null && request.meta().propertyUsage() != null) {
+            String usage = request.meta().propertyUsage().trim().toUpperCase();
+            if ("AGRICULTURAL".equals(usage) || "INDUSTRIAL".equals(usage)) {
+                return UsageType.COMMERCIAL;
+            }
+            try {
+                return UsageType.valueOf(usage);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        if (request.category() != null) {
+            try {
+                return UsageType.valueOf(request.category().trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return null;
     }
 }

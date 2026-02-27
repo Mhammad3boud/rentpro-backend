@@ -18,8 +18,8 @@ public class MaintenanceRequest {
     @Column(name = "request_id")
     private UUID requestId = UUID.randomUUID();
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "lease_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "lease_id")
     private Lease lease;
 
     @ManyToOne(optional = false)
@@ -30,8 +30,8 @@ public class MaintenanceRequest {
     @JoinColumn(name = "unit_id")
     private Unit unit;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "tenant_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "tenant_id")
     private Tenant tenant;
 
     @Column(nullable = false)

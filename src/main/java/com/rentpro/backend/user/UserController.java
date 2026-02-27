@@ -1,5 +1,7 @@
 package com.rentpro.backend.user;
 
+import com.rentpro.backend.tenant.Tenant;
+import com.rentpro.backend.tenant.TenantRepository;
 import com.rentpro.backend.user.dto.ChangePasswordRequest;
 import com.rentpro.backend.user.dto.UpdateProfileRequest;
 import com.rentpro.backend.user.dto.UserProfileResponse;
@@ -21,11 +23,13 @@ import java.util.Map;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
     private static final String UPLOAD_DIR = "uploads/profiles/";
 
-    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserController(UserRepository userRepository, TenantRepository tenantRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.tenantRepository = tenantRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -36,13 +40,25 @@ public class UserController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        String fullName = user.getFullName();
+        String phone = user.getPhone();
+        String address = user.getAddress();
+        if (isBlank(fullName) || isBlank(phone) || isBlank(address)) {
+            Tenant tenant = tenantRepository.findByUser_UserId(user.getUserId()).orElse(null);
+            if (tenant != null) {
+                if (isBlank(fullName)) fullName = tenant.getFullName();
+                if (isBlank(phone)) phone = tenant.getPhone();
+                if (isBlank(address)) address = tenant.getAddress();
+            }
+        }
+
         return new UserProfileResponse(
                 user.getUserId(),
                 user.getEmail(),
                 user.getRole().name(),
-                user.getFullName(),
-                user.getPhone(),
-                user.getAddress(),
+                fullName,
+                phone,
+                address,
                 user.getProfilePicture(),
                 user.getNotificationEmail(),
                 user.getNotificationPush(),
@@ -194,5 +210,9 @@ public class UserController {
         userRepository.save(user);
 
         return ResponseEntity.ok(Map.of("message", "Profile picture removed"));
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }
