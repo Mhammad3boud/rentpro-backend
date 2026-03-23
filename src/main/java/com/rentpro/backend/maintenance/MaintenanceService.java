@@ -10,19 +10,16 @@ import com.rentpro.backend.notification.NotificationService;
 import com.rentpro.backend.notification.NotificationType;
 import com.rentpro.backend.property.Property;
 import com.rentpro.backend.property.PropertyRepository;
+import com.rentpro.backend.storage.StorageService;
 import com.rentpro.backend.tenant.Tenant;
 import com.rentpro.backend.tenant.TenantRepository;
 import com.rentpro.backend.unit.Unit;
 import com.rentpro.backend.unit.UnitRepository;
 import com.rentpro.backend.lease.LeaseStatus;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -38,9 +35,7 @@ public class MaintenanceService {
     private final LeaseRepository leaseRepository;
     private final ActivityService activityService;
     private final NotificationService notificationService;
-
-    @Value("${app.upload.dir:uploads/maintenance}")
-    private String uploadDir;
+    private final StorageService storageService;
 
     public MaintenanceService(MaintenanceRepository repository,
                               MaintenancePhotoRepository photoRepository,
@@ -49,7 +44,8 @@ public class MaintenanceService {
                               UnitRepository unitRepository,
                               LeaseRepository leaseRepository,
                               ActivityService activityService,
-                              NotificationService notificationService) {
+                              NotificationService notificationService,
+                              StorageService storageService) {
         this.repository = repository;
         this.photoRepository = photoRepository;
         this.tenantRepository = tenantRepository;
@@ -58,6 +54,7 @@ public class MaintenanceService {
         this.leaseRepository = leaseRepository;
         this.activityService = activityService;
         this.notificationService = notificationService;
+        this.storageService = storageService;
     }
 
     public MaintenanceRequest createRequest(UUID currentUserId, String role, CreateMaintenanceRequest request) {
@@ -370,12 +367,6 @@ public class MaintenanceService {
         MaintenanceRequest maintenance = repository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
-        // Create upload directory if it doesn't exist
-        Path uploadPath = Paths.get(uploadDir);
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
-
         // Generate unique filename
         String originalFilename = file.getOriginalFilename();
         String extension = originalFilename != null && originalFilename.contains(".")
@@ -383,14 +374,10 @@ public class MaintenanceService {
                 : ".jpg";
         String filename = requestId + "_" + UUID.randomUUID() + extension;
 
-        // Save file
-        Path filePath = uploadPath.resolve(filename);
-        Files.copy(file.getInputStream(), filePath);
-
         // Save photo record
         MaintenancePhoto photo = new MaintenancePhoto();
         photo.setMaintenanceRequest(maintenance);
-        photo.setImageUrl("/uploads/maintenance/" + filename);
+        photo.setImageUrl(storageService.uploadMaintenancePhoto(filename, file));
 
         return photoRepository.save(photo);
     }
@@ -409,13 +396,7 @@ public class MaintenanceService {
             throw new RuntimeException("Unauthorized");
         }
 
-        // Delete file from disk
-        try {
-            Path filePath = Paths.get(photo.getImageUrl().replace("/uploads/maintenance/", uploadDir + "/"));
-            Files.deleteIfExists(filePath);
-        } catch (IOException e) {
-            // Log but don't fail if file deletion fails
-        }
+        storageService.deleteByUrl(photo.getImageUrl());
 
         photoRepository.delete(photo);
     }

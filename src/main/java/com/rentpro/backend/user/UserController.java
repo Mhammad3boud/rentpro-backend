@@ -1,5 +1,6 @@
 package com.rentpro.backend.user;
 
+import com.rentpro.backend.storage.StorageService;
 import com.rentpro.backend.tenant.Tenant;
 import com.rentpro.backend.tenant.TenantRepository;
 import com.rentpro.backend.user.dto.ChangePasswordRequest;
@@ -13,9 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 
 @RestController
@@ -25,12 +23,16 @@ public class UserController {
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
-    private static final String UPLOAD_DIR = "uploads/profiles/";
+    private final StorageService storageService;
 
-    public UserController(UserRepository userRepository, TenantRepository tenantRepository, PasswordEncoder passwordEncoder) {
+    public UserController(UserRepository userRepository,
+                          TenantRepository tenantRepository,
+                          PasswordEncoder passwordEncoder,
+                          StorageService storageService) {
         this.userRepository = userRepository;
         this.tenantRepository = tenantRepository;
         this.passwordEncoder = passwordEncoder;
+        this.storageService = storageService;
     }
 
     @GetMapping("/me")
@@ -149,35 +151,21 @@ public class UserController {
         }
 
         try {
-            // Create upload directory if it doesn't exist
-            Path uploadPath = Paths.get(UPLOAD_DIR);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
             // Generate unique filename
             String originalFilename = file.getOriginalFilename();
             String extension = originalFilename != null && originalFilename.contains(".") 
                     ? originalFilename.substring(originalFilename.lastIndexOf("."))
                     : ".jpg";
             String filename = user.getUserId().toString() + "_" + System.currentTimeMillis() + extension;
-            
-            Path filePath = uploadPath.resolve(filename);
-            Files.write(filePath, file.getBytes());
 
             // Delete old profile picture if exists
             String oldPicture = user.getProfilePicture();
             if (oldPicture != null && !oldPicture.isEmpty()) {
-                try {
-                    Path oldPath = Paths.get(oldPicture.replace("/api/uploads/profiles/", UPLOAD_DIR));
-                    Files.deleteIfExists(oldPath);
-                } catch (Exception e) {
-                    // Ignore delete errors
-                }
+                storageService.deleteByUrl(oldPicture);
             }
 
             // Save new profile picture path
-            String pictureUrl = "/api/uploads/profiles/" + filename;
+            String pictureUrl = storageService.uploadProfilePicture(filename, file);
             user.setProfilePicture(pictureUrl);
             userRepository.save(user);
 
@@ -198,12 +186,7 @@ public class UserController {
 
         String oldPicture = user.getProfilePicture();
         if (oldPicture != null && !oldPicture.isEmpty()) {
-            try {
-                Path oldPath = Paths.get(oldPicture.replace("/api/uploads/profiles/", UPLOAD_DIR));
-                Files.deleteIfExists(oldPath);
-            } catch (Exception e) {
-                // Ignore delete errors
-            }
+            storageService.deleteByUrl(oldPicture);
         }
 
         user.setProfilePicture(null);
