@@ -89,6 +89,18 @@ public class PropertyService {
                 .toList();
     }
 
+    public PropertyWithUnitsDto getPropertyByIdAndOwner(UUID propertyId, UUID ownerId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+        
+        if (!property.getOwner().getUserId().equals(ownerId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        
+        List<Unit> units = unitRepository.findByProperty_PropertyId(propertyId);
+        return PropertyWithUnitsDto.fromEntity(property, units);
+    }
+
     @Transactional
     public Property updateProperty(UUID ownerId, UUID propertyId, CreatePropertyRequest request) {
         Property property = propertyRepository.findById(propertyId)

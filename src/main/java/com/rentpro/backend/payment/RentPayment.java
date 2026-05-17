@@ -116,7 +116,10 @@ public class RentPayment {
 
     public enum PaymentMethod {
 
-        CASH, BANK_TRANSFER, CHECK
+        CASH, BANK_TRANSFER, CHECK,
+        PAYPAL, ADYEN, STRIPE,
+        FPX, DUITNOW, TOUCHNGO, GRABPAY,
+        MPESA, AIRTEL_MONEY, TIGO_PESA
 
     }
 

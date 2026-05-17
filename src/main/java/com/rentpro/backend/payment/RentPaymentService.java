@@ -33,13 +33,30 @@ public class RentPaymentService {
 
     // Owner records or edits payment for a lease/month
     public RentPayment upsertPayment(UUID ownerId, CreateOrUpdatePaymentRequest request) {
+        return upsertPaymentInternal(ownerId, null, request, true);
+    }
 
+    // Tenant gateway completion path
+    public RentPayment upsertPaymentForTenant(UUID tenantUserId, CreateOrUpdatePaymentRequest request) {
+        return upsertPaymentInternal(null, tenantUserId, request, false);
+    }
+
+    private RentPayment upsertPaymentInternal(UUID ownerId, UUID tenantUserId, CreateOrUpdatePaymentRequest request, boolean ownerFlow) {
         Lease lease = leaseRepository.findById(request.leaseId())
                 .orElseThrow(() -> new RuntimeException("Lease not found"));
 
-        // Owner must own the property in that lease
-        if (!lease.getProperty().getOwner().getUserId().equals(ownerId)) {
-            throw new RuntimeException("Unauthorized: lease does not belong to owner");
+        UUID leaseTenantUserId = lease.getTenant() != null && lease.getTenant().getUser() != null
+                ? lease.getTenant().getUser().getUserId()
+                : null;
+
+        if (ownerFlow) {
+            if (!lease.getProperty().getOwner().getUserId().equals(ownerId)) {
+                throw new RuntimeException("Unauthorized: lease does not belong to owner");
+            }
+        } else {
+            if (leaseTenantUserId == null || !leaseTenantUserId.equals(tenantUserId)) {
+                throw new RuntimeException("Unauthorized: lease does not belong to tenant");
+            }
         }
 
         RentPayment payment = rentPaymentRepository
@@ -67,20 +84,18 @@ public class RentPaymentService {
         // Log activity
         String propertyName = lease.getProperty().getPropertyName();
         String unitNumber = lease.getUnit() != null ? lease.getUnit().getUnitNumber() : null;
-        UUID tenantUserId = lease.getTenant() != null && lease.getTenant().getUser() != null
-                ? lease.getTenant().getUser().getUserId()
-                : null;
+        UUID actorId = ownerFlow ? ownerId : tenantUserId;
         if (request.amountPaid() != null && request.amountPaid().compareTo(BigDecimal.ZERO) > 0) {
-            activityService.logPaymentReceived(ownerId, propertyName, unitNumber, 
+            activityService.logPaymentReceived(actorId, propertyName, unitNumber,
                     request.monthYear(), request.amountPaid().doubleValue());
-            if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
-                activityService.logPaymentReceived(tenantUserId, propertyName, unitNumber,
+            if (leaseTenantUserId != null && !leaseTenantUserId.equals(actorId)) {
+                activityService.logPaymentReceived(leaseTenantUserId, propertyName, unitNumber,
                         request.monthYear(), request.amountPaid().doubleValue());
             }
         } else {
-            activityService.logPaymentUpdated(ownerId, propertyName, unitNumber, request.monthYear());
-            if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
-                activityService.logPaymentUpdated(tenantUserId, propertyName, unitNumber, request.monthYear());
+            activityService.logPaymentUpdated(actorId, propertyName, unitNumber, request.monthYear());
+            if (leaseTenantUserId != null && !leaseTenantUserId.equals(actorId)) {
+                activityService.logPaymentUpdated(leaseTenantUserId, propertyName, unitNumber, request.monthYear());
             }
         }
         

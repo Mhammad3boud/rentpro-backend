@@ -26,8 +26,18 @@ public class PropertyController {
     }
 
     @GetMapping("/{ownerId}")
-    public List<PropertyWithUnitsDto> getOwnerProperties(@PathVariable UUID ownerId) {
+    public List<PropertyWithUnitsDto> getOwnerProperties(Authentication auth, @PathVariable UUID ownerId) {
+        UUID authenticatedUserId = getOwnerId(auth);
+        if (!authenticatedUserId.equals(ownerId)) {
+            throw new RuntimeException("Unauthorized");
+        }
         return propertyService.getOwnerPropertiesWithUnits(ownerId);
+    }
+
+    @GetMapping("/single/{propertyId}")
+    public PropertyWithUnitsDto getPropertyById(Authentication auth, @PathVariable UUID propertyId) {
+        UUID authenticatedUserId = getOwnerId(auth);
+        return propertyService.getPropertyByIdAndOwner(propertyId, authenticatedUserId);
     }
 
     @PutMapping("/{propertyId}")

@@ -45,6 +45,8 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**", "/error").permitAll()
                         .requestMatchers("/api/app-config/**").permitAll()
                         .requestMatchers("/predictions/**").permitAll()
+                        .requestMatchers("/payments/webhooks/**").permitAll()
+                        .requestMatchers("/payments/stripe/connect/callback").permitAll()
                         .requestMatchers("/uploads/**", "/api/uploads/**").permitAll()
                         .requestMatchers("/api/tenants/**").hasAnyRole("OWNER", "TENANT")
                         .requestMatchers("/api/properties/**").hasRole("OWNER")
