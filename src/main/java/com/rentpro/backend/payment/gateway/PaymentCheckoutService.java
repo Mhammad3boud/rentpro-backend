@@ -117,7 +117,7 @@ public class PaymentCheckoutService {
                 session.getStatus(),
                 session.getMessage(),
                 session.getAmountPaid(),
-                "TZS",
+                "MYR",
                 session.getUpdatedAt()
         );
     }

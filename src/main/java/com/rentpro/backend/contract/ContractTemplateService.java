@@ -37,9 +37,9 @@ public class ContractTemplateService {
         
         1. TERM: This lease begins on {{START_DATE}} and ends on {{END_DATE}}.
         
-        2. RENT: Tenant agrees to pay TZS {{MONTHLY_RENT}} per month, due on the 7th of each month.
+        2. RENT: Tenant agrees to pay MYR {{MONTHLY_RENT}} per month, due on the 7th of each month.
         
-        3. SECURITY DEPOSIT: Tenant has paid TZS {{SECURITY_DEPOSIT}} as security deposit.
+        3. SECURITY DEPOSIT: Tenant has paid MYR {{SECURITY_DEPOSIT}} as security deposit.
         
         4. UTILITIES: {{UTILITIES_TERMS}}
         

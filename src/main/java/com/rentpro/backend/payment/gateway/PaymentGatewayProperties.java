@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class PaymentGatewayProperties {
 
-    @Value("${payment.currency:TZS}")
+    @Value("${payment.currency:MYR}")
     private String currency;
 
     @Value("${payment.paypal.enabled:false}")

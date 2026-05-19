@@ -83,12 +83,12 @@ public class ContractPdfService {
                 (lease.getStartDate() != null ? lease.getStartDate().format(dateFormatter) : "N/A"), normalFont));
             document.add(new Paragraph("• Lease End Date: " + 
                 (lease.getEndDate() != null ? lease.getEndDate().format(dateFormatter) : "N/A"), normalFont));
-            document.add(new Paragraph("• Monthly Rent: TZS " + 
+            document.add(new Paragraph("• Monthly Rent: MYR " + 
                 String.format("%,.0f", lease.getMonthlyRent().doubleValue()), normalFont));
             double depositAmount = lease.getSecurityDeposit() != null 
                 ? lease.getSecurityDeposit().doubleValue() 
                 : lease.getMonthlyRent().doubleValue() * 2;
-            document.add(new Paragraph("• Security Deposit: TZS " + 
+            document.add(new Paragraph("• Security Deposit: MYR " + 
                 String.format("%,.0f", depositAmount), normalFont));
             document.add(Chunk.NEWLINE);
 

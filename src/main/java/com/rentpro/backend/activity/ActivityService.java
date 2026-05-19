@@ -60,7 +60,7 @@ public class ActivityService {
         String location = unitNumber != null 
             ? String.format("%s Unit %s", propertyName, unitNumber) 
             : propertyName;
-        String desc = String.format("Payment of TZS %.0f received for %s (%s)", amount, location, monthYear);
+        String desc = String.format("Payment of MYR %.0f received for %s (%s)", amount, location, monthYear);
         logActivity(userId, ActivityType.PAYMENT_RECEIVED, "Payment Received", desc);
     }
 

@@ -1,7 +1,9 @@
 package com.rentpro.backend.auth;
 
+import com.rentpro.backend.auth.dto.ForgotPasswordRequest;
 import com.rentpro.backend.auth.dto.LoginRequest;
 import com.rentpro.backend.auth.dto.RegisterOwnerRequest;
+import com.rentpro.backend.auth.dto.ResetPasswordRequest;
 
 import java.util.Map;
 
@@ -38,4 +40,19 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(req));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
+        authService.forgotPassword(req.email());
+        return ResponseEntity.ok(Map.of("message", "If that email is registered, a reset link has been sent."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        try {
+            authService.resetPassword(req.token(), req.newPassword());
+            return ResponseEntity.ok(Map.of("message", "Password reset successfully."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

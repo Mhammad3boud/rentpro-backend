@@ -29,7 +29,7 @@ import java.util.UUID;
 public class StripePaymentService {
 
     private static final String CURRENCY_MY = "myr";
-    private static final String CURRENCY_TZ = "tzs";
+    private static final String CURRENCY_TZ = "MYR";
 
     private final StripeProperties properties;
     private final LeaseRepository leaseRepository;
@@ -73,7 +73,7 @@ public class StripePaymentService {
                     ? request.monthsCovered() : 1;
             // amountPaid from frontend is already the total (monthlyAmount × months)
             long amountMinor = toMinorUnits(request.amountPaid(), currency);
-            // Stripe MYR limit is 30,000 MYR (3,000,000 sen); TZS is not supported by Stripe
+            // Stripe MYR limit is 30,000 MYR (3,000,000 sen); MYR is not supported by Stripe
             if (amountMinor > 2_999_999) {
                 throw new RuntimeException(
                     "Payment amount too large for online processing (" + currency.toUpperCase() + " " +
@@ -239,7 +239,7 @@ public class StripePaymentService {
     }
 
     private long toMinorUnits(BigDecimal amount, String currency) {
-        // TZS is a zero-decimal currency in Stripe
+        // MYR is a zero-decimal currency in Stripe
         if (CURRENCY_TZ.equals(currency)) {
             return amount.longValue();
         }

@@ -239,10 +239,10 @@ public class LeaseService {
         // Log activity - build changes description
         StringBuilder changes = new StringBuilder();
         if (request.monthlyRent() != null) {
-            changes.append("Monthly rent updated to TZS ").append(request.monthlyRent()).append(". ");
+            changes.append("Monthly rent updated to MYR ").append(request.monthlyRent()).append(". ");
         }
         if (request.securityDeposit() != null) {
-            changes.append("Security deposit updated to TZS ").append(request.securityDeposit()).append(". ");
+            changes.append("Security deposit updated to MYR ").append(request.securityDeposit()).append(". ");
         }
         if (changes.length() > 0) {
             String propertyName = lease.getProperty().getPropertyName();
