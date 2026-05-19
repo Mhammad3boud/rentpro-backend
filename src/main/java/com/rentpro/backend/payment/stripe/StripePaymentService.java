@@ -16,12 +16,13 @@ import com.stripe.param.PaymentIntentRetrieveParams;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.UUID;
 
 @Service
@@ -68,6 +69,9 @@ public class StripePaymentService {
 
         Stripe.apiKey = properties.getSecretKey();
         try {
+            int months = (request.monthsCovered() != null && request.monthsCovered() > 1)
+                    ? request.monthsCovered() : 1;
+            // amountPaid from frontend is already the total (monthlyAmount × months)
             long amountMinor = toMinorUnits(request.amountPaid(), currency);
             // Stripe MYR limit is 30,000 MYR (3,000,000 sen); TZS is not supported by Stripe
             if (amountMinor > 2_999_999) {
@@ -75,19 +79,23 @@ public class StripePaymentService {
                     "Payment amount too large for online processing (" + currency.toUpperCase() + " " +
                     request.amountPaid().toPlainString() + "). Please use bank transfer or cash for large amounts.");
             }
-            String ownerStripeAccountId = ownerProfileService.getStripeAccountId(ownerUserId);
+            // Per-month amounts stored in metadata for record creation on confirm
+            BigDecimal monthlyPaid = request.amountPaid().divide(BigDecimal.valueOf(months), 2, RoundingMode.HALF_UP);
 
-            List<String> stripeMethodTypes = resolvePaymentMethodTypes(request.paymentMethod(), currency);
+            String ownerStripeAccountId = ownerProfileService.getStripeAccountId(ownerUserId);
 
             PaymentIntentCreateParams.Builder intentBuilder = PaymentIntentCreateParams.builder()
                     .setAmount(amountMinor)
                     .setCurrency(currency)
-                    .addAllPaymentMethodType(stripeMethodTypes)
+                    .setAutomaticPaymentMethods(
+                            PaymentIntentCreateParams.AutomaticPaymentMethods.builder().setEnabled(true).build()
+                    )
                     .putMetadata("leaseId", request.leaseId().toString())
                     .putMetadata("monthYear", request.monthYear())
                     .putMetadata("tenantUserId", tenantUserId.toString())
                     .putMetadata("amountExpected", request.amountExpected().toPlainString())
-                    .putMetadata("amountPaid", request.amountPaid().toPlainString())
+                    .putMetadata("amountPaid", monthlyPaid.toPlainString())
+                    .putMetadata("monthsCovered", String.valueOf(months))
                     .putMetadata("currency", currency);
 
             // Route funds directly to owner's connected Stripe account if they have one
@@ -138,22 +146,28 @@ public class StripePaymentService {
             }
 
             UUID leaseId = UUID.fromString(meta.get("leaseId"));
-            String monthYear = meta.get("monthYear");
+            String startMonthYear = meta.get("monthYear");
             BigDecimal amountExpected = new BigDecimal(meta.get("amountExpected"));
             BigDecimal amountPaid = new BigDecimal(meta.get("amountPaid"));
+            int months = Integer.parseInt(meta.getOrDefault("monthsCovered", "1"));
 
-            return rentPaymentService.upsertPaymentForTenant(
-                    tenantUserId,
-                    new CreateOrUpdatePaymentRequest(
-                            leaseId,
-                            monthYear,
-                            amountExpected,
-                            amountPaid,
-                            null,
-                            LocalDate.now(),
-                            RentPayment.PaymentMethod.STRIPE
-                    )
-            );
+            RentPayment last = null;
+            for (int i = 0; i < months; i++) {
+                String monthYear = addMonths(startMonthYear, i);
+                last = rentPaymentService.upsertPaymentForTenant(
+                        tenantUserId,
+                        new CreateOrUpdatePaymentRequest(
+                                leaseId,
+                                monthYear,
+                                amountExpected,
+                                amountPaid,
+                                null,
+                                LocalDate.now(),
+                                RentPayment.PaymentMethod.STRIPE
+                        )
+                );
+            }
+            return last;
         } catch (StripeException e) {
             throw new RuntimeException("Failed to verify Stripe payment: " + e.getMessage(), e);
         }
@@ -218,13 +232,10 @@ public class StripePaymentService {
         }
     }
 
-    private List<String> resolvePaymentMethodTypes(String method, String currency) {
-        if (method == null) return List.of("card");
-        return switch (method.toUpperCase()) {
-            case "FPX"     -> List.of("fpx");
-            case "GRABPAY" -> List.of("grabpay");
-            default        -> List.of("card");
-        };
+    private String addMonths(String monthYear, int offset) {
+        String[] parts = monthYear.split("-");
+        YearMonth ym = YearMonth.of(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+        return ym.plusMonths(offset).toString();
     }
 
     private long toMinorUnits(BigDecimal amount, String currency) {

@@ -14,5 +14,6 @@ public record StripeIntentRequest(
         @NotNull @DecimalMin("0.01") BigDecimal amountExpected,
         @NotNull @DecimalMin("0.01") BigDecimal amountPaid,
         LocalDate paidDate,
-        String paymentMethod
+        String paymentMethod,
+        Integer monthsCovered
 ) {}

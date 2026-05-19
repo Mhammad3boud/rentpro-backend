@@ -9,6 +9,7 @@ import com.rentpro.backend.payment.dto.CreateOrUpdatePaymentRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.rentpro.backend.lease.LeaseStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -133,6 +134,66 @@ public class RentPaymentService {
         }
 
         return PaymentStatus.PENDING;
+    }
+
+    // Called immediately after a new lease is created so the tenant sees the current month right away
+    public void seedCurrentMonthForLease(Lease lease) {
+        YearMonth currentMonth = YearMonth.now();
+        // Don't seed if lease hasn't started yet this month
+        if (lease.getStartDate() != null && currentMonth.isBefore(YearMonth.from(lease.getStartDate()))) {
+            return;
+        }
+        // Don't seed if already past lease end date
+        if (lease.getEndDate() != null && currentMonth.isAfter(YearMonth.from(lease.getEndDate()))) {
+            return;
+        }
+        String monthYear = currentMonth.toString();
+        boolean exists = rentPaymentRepository
+                .findByLease_LeaseIdAndMonthYear(lease.getLeaseId(), monthYear)
+                .isPresent();
+        if (exists) return;
+
+        RentPayment pending = new RentPayment();
+        pending.setLease(lease);
+        pending.setMonthYear(monthYear);
+        pending.setAmountExpected(lease.getMonthlyRent() != null ? lease.getMonthlyRent() : BigDecimal.ZERO);
+        pending.setAmountPaid(BigDecimal.ZERO);
+        pending.setDueDate(LocalDate.of(currentMonth.getYear(), currentMonth.getMonth(), 7));
+        pending.setPaymentStatus(RentPayment.PaymentStatus.PENDING);
+        rentPaymentRepository.save(pending);
+    }
+
+    // Scheduled task — runs on the 1st of each month to seed a Pending record for every active lease
+    public void generateMonthlyPendingRecords() {
+        YearMonth currentMonth = YearMonth.now();
+        String monthYear = currentMonth.toString(); // "YYYY-MM"
+        LocalDate dueDate = LocalDate.of(currentMonth.getYear(), currentMonth.getMonth(), 7);
+
+        List<Lease> activeLeases = leaseRepository.findByLeaseStatus(LeaseStatus.ACTIVE);
+        for (Lease lease : activeLeases) {
+            // Skip if lease hasn't started yet
+            if (lease.getStartDate() != null && currentMonth.isBefore(YearMonth.from(lease.getStartDate()))) {
+                continue;
+            }
+            // Skip if current month is past lease end date
+            if (lease.getEndDate() != null && currentMonth.isAfter(YearMonth.from(lease.getEndDate()))) {
+                continue;
+            }
+            // Skip if record already exists for this lease + month
+            boolean exists = rentPaymentRepository
+                    .findByLease_LeaseIdAndMonthYear(lease.getLeaseId(), monthYear)
+                    .isPresent();
+            if (exists) continue;
+
+            RentPayment pending = new RentPayment();
+            pending.setLease(lease);
+            pending.setMonthYear(monthYear);
+            pending.setAmountExpected(lease.getMonthlyRent() != null ? lease.getMonthlyRent() : BigDecimal.ZERO);
+            pending.setAmountPaid(BigDecimal.ZERO);
+            pending.setDueDate(dueDate);
+            pending.setPaymentStatus(RentPayment.PaymentStatus.PENDING);
+            rentPaymentRepository.save(pending);
+        }
     }
 
     // Scheduled task to update overdue payments - called daily

@@ -23,4 +23,12 @@ public class PaymentScheduler {
         rentPaymentService.updateOverduePayments();
         logger.info("Scheduled task completed: overdue payments updated");
     }
+
+    // Run on the 1st of every month at 2:00 AM
+    @Scheduled(cron = "0 0 2 1 * ?")
+    public void generateMonthlyPendingRecords() {
+        logger.info("Running scheduled task: generating monthly pending rent records");
+        rentPaymentService.generateMonthlyPendingRecords();
+        logger.info("Scheduled task completed: monthly pending records generated");
+    }
 }

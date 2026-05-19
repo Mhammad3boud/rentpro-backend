@@ -43,4 +43,6 @@ public interface LeaseRepository extends JpaRepository<Lease, UUID> {
           and (l.endDate is null or l.endDate >= :currentDate)
     """)
     long countActiveLeasesByOwner(@Param("ownerId") UUID ownerId, @Param("currentDate") LocalDate currentDate);
+
+    List<Lease> findByLeaseStatus(LeaseStatus status);
 }

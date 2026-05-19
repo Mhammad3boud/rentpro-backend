@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rentpro.backend.notification.NotificationService;
 import com.rentpro.backend.notification.NotificationType;
+import com.rentpro.backend.payment.RentPaymentService;
 import com.rentpro.backend.property.Property;
 import com.rentpro.backend.property.PropertyRepository;
 import com.rentpro.backend.property.PropertyType;
@@ -36,19 +37,22 @@ public class LeaseService {
     private final TenantRepository tenantRepository;
     private final ActivityService activityService;
     private final NotificationService notificationService;
+    private final RentPaymentService rentPaymentService;
 
     public LeaseService(LeaseRepository leaseRepository,
                         PropertyRepository propertyRepository,
                         UnitRepository unitRepository,
                         TenantRepository tenantRepository,
                         ActivityService activityService,
-                        NotificationService notificationService) {
+                        NotificationService notificationService,
+                        RentPaymentService rentPaymentService) {
         this.leaseRepository = leaseRepository;
         this.propertyRepository = propertyRepository;
         this.unitRepository = unitRepository;
         this.tenantRepository = tenantRepository;
         this.activityService = activityService;
         this.notificationService = notificationService;
+        this.rentPaymentService = rentPaymentService;
     }
 
     public Lease createLease(UUID ownerId, CreateLeaseRequest request) {
@@ -106,7 +110,8 @@ public class LeaseService {
         }
 
         Lease saved = leaseRepository.save(lease);
-        
+        rentPaymentService.seedCurrentMonthForLease(saved);
+
         // Log activity
         String unitNumber = unit != null ? unit.getUnitNumber() : null;
         activityService.logLeaseCreated(ownerId, tenant.getFullName(), property.getPropertyName(), unitNumber);
@@ -197,7 +202,8 @@ public class LeaseService {
         }
 
         Lease saved = leaseRepository.save(lease);
-        
+        rentPaymentService.seedCurrentMonthForLease(saved);
+
         // Log activity
         String unitNumber = unit != null ? unit.getUnitNumber() : null;
         activityService.logTenantAssigned(ownerId, tenant.getFullName(), property.getPropertyName(), unitNumber);
