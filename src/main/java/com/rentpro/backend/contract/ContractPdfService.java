@@ -2,6 +2,7 @@ package com.rentpro.backend.contract;
 
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfWriter;
+import com.rentpro.backend.lease.DepositBreakdownItem;
 import com.rentpro.backend.lease.Lease;
 import com.rentpro.backend.lease.LeaseService;
 import org.springframework.stereotype.Service;
@@ -85,11 +86,19 @@ public class ContractPdfService {
                 (lease.getEndDate() != null ? lease.getEndDate().format(dateFormatter) : "N/A"), normalFont));
             document.add(new Paragraph("• Monthly Rent: MYR " + 
                 String.format("%,.0f", lease.getMonthlyRent().doubleValue()), normalFont));
-            double depositAmount = lease.getSecurityDeposit() != null 
-                ? lease.getSecurityDeposit().doubleValue() 
+            double depositAmount = lease.getSecurityDeposit() != null
+                ? lease.getSecurityDeposit().doubleValue()
                 : lease.getMonthlyRent().doubleValue() * 2;
-            document.add(new Paragraph("• Security Deposit: MYR " + 
+            document.add(new Paragraph("• Security Deposit: MYR " +
                 String.format("%,.0f", depositAmount), normalFont));
+            java.util.List<DepositBreakdownItem> breakdown = lease.getDepositBreakdown();
+            if (breakdown != null && !breakdown.isEmpty()) {
+                for (DepositBreakdownItem item : breakdown) {
+                    String itemAmt = item.getAmount() != null
+                        ? String.format("%,.2f", item.getAmount().doubleValue()) : "0.00";
+                    document.add(new Paragraph("    - " + item.getLabel() + ": MYR " + itemAmt, normalFont));
+                }
+            }
             document.add(Chunk.NEWLINE);
 
             // Additional Terms

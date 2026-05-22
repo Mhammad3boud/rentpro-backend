@@ -96,6 +96,10 @@ public class LeaseService {
         lease.setUnit(unit);
         lease.setTenant(tenant);
         lease.setMonthlyRent(request.monthlyRent());
+        if (request.securityDeposit() != null) {
+            lease.setSecurityDeposit(request.securityDeposit());
+        }
+        lease.setDepositBreakdownJson(serializeBreakdown(request.depositBreakdown()));
         lease.setStartDate(request.startDate());
         lease.setEndDate(request.endDate());
         lease.setLeaseStatus(LeaseStatus.ACTIVE);
@@ -190,6 +194,10 @@ public class LeaseService {
         lease.setUnit(unit);
         lease.setTenant(tenant);
         lease.setMonthlyRent(request.monthlyRent());
+        if (request.securityDeposit() != null) {
+            lease.setSecurityDeposit(request.securityDeposit());
+        }
+        lease.setDepositBreakdownJson(serializeBreakdown(request.depositBreakdown()));
         lease.setStartDate(request.startDate());
         lease.setEndDate(request.endDate());
         lease.setLeaseStatus(LeaseStatus.ACTIVE);
@@ -226,6 +234,9 @@ public class LeaseService {
         }
         if (request.securityDeposit() != null) {
             lease.setSecurityDeposit(request.securityDeposit());
+        }
+        if (request.depositBreakdown() != null) {
+            lease.setDepositBreakdownJson(serializeBreakdown(request.depositBreakdown()));
         }
         if (request.startDate() != null) {
             lease.setStartDate(request.startDate());
@@ -467,6 +478,17 @@ public class LeaseService {
                     "LEASE",
                     lease.getLeaseId()
             );
+        }
+    }
+
+    private String serializeBreakdown(List<DepositBreakdownItem> breakdown) {
+        if (breakdown == null || breakdown.isEmpty()) {
+            return null;
+        }
+        try {
+            return OBJECT_MAPPER.writeValueAsString(breakdown);
+        } catch (JsonProcessingException e) {
+            return null;
         }
     }
 

@@ -95,4 +95,24 @@ public interface RentPaymentRepository extends JpaRepository<RentPayment, UUID> 
           and month(r.paidDate) = month(current_date)
     """)
     BigDecimal sumCurrentMonthRevenueByOwner(@Param("ownerId") UUID ownerId);
+
+    // ✅ PLATFORM: total revenue this month (all owners)
+    @Query("""
+        select coalesce(sum(r.amountPaid), 0)
+        from RentPayment r
+        where r.paidDate is not null
+          and year(r.paidDate) = year(current_date)
+          and month(r.paidDate) = month(current_date)
+    """)
+    BigDecimal sumPlatformRevenueThisMonth();
+
+    // ✅ PLATFORM: total outstanding (OVERDUE + PENDING + PARTIAL)
+    @Query("""
+        select coalesce(sum(r.amountExpected - coalesce(r.amountPaid, 0)), 0)
+        from RentPayment r
+        where r.paymentStatus = com.rentpro.backend.payment.RentPayment.PaymentStatus.OVERDUE
+           or r.paymentStatus = com.rentpro.backend.payment.RentPayment.PaymentStatus.PENDING
+           or r.paymentStatus = com.rentpro.backend.payment.RentPayment.PaymentStatus.PARTIAL
+    """)
+    BigDecimal sumPlatformOutstanding();
 }

@@ -93,6 +93,10 @@ public class Lease {
     @Column(name = "check_out_notes")
     private String checkOutNotes;
 
+    @Column(name = "deposit_breakdown_json", columnDefinition = "TEXT")
+    @JsonIgnore
+    private String depositBreakdownJson;
+
     @Column(name = "check_in_checklist_json", columnDefinition = "TEXT")
     @JsonIgnore
     private String checkInChecklistJson;
@@ -123,6 +127,21 @@ public class Lease {
 
     public BigDecimal getSecurityDeposit() { return securityDeposit; }
     public void setSecurityDeposit(BigDecimal securityDeposit) { this.securityDeposit = securityDeposit; }
+
+    public String getDepositBreakdownJson() { return depositBreakdownJson; }
+    public void setDepositBreakdownJson(String depositBreakdownJson) { this.depositBreakdownJson = depositBreakdownJson; }
+
+    @JsonProperty("depositBreakdown")
+    public List<DepositBreakdownItem> getDepositBreakdown() {
+        if (depositBreakdownJson == null || depositBreakdownJson.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            return OBJECT_MAPPER.readValue(depositBreakdownJson, new TypeReference<List<DepositBreakdownItem>>() {});
+        } catch (Exception ignored) {
+            return Collections.emptyList();
+        }
+    }
 
     public LocalDate getStartDate() { return startDate; }
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }

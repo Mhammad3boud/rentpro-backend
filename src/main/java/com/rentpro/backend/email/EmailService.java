@@ -20,6 +20,22 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
+    public void sendCrashAlert(String toEmail, String errorType, String endpoint, String message) {
+        SimpleMailMessage msg = new SimpleMailMessage();
+        msg.setFrom(fromEmail);
+        msg.setTo(toEmail);
+        msg.setSubject("[RentPro] Server Error — " + errorType);
+        msg.setText(
+            "A server error occurred in RentPro.\n\n" +
+            "Error type : " + errorType + "\n" +
+            "Endpoint   : " + endpoint + "\n" +
+            "Message    : " + (message != null ? message : "(none)") + "\n" +
+            "Time       : " + java.time.LocalDateTime.now() + "\n\n" +
+            "Check the server logs for the full stack trace."
+        );
+        mailSender.send(msg);
+    }
+
     public void sendPasswordResetEmail(String toEmail, String token) {
         String resetLink = frontendBaseUrl + "/reset-password?token=" + token;
 

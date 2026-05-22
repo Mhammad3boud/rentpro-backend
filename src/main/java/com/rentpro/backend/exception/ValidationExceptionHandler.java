@@ -1,5 +1,7 @@
 package com.rentpro.backend.exception;
 
+import com.rentpro.backend.email.EmailService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -16,14 +18,23 @@ import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-/**
- * Global exception handler for validation and security errors
- * Provides consistent error responses following OWASP security guidelines
- */
 @RestControllerAdvice
 public class ValidationExceptionHandler {
+
+    private static final long ALERT_COOLDOWN_MS = 5 * 60 * 1000L;
+    private final AtomicLong lastAlertTime = new AtomicLong(0);
+
+    private final EmailService emailService;
+
+    @Value("${app.admin.email:}")
+    private String adminEmail;
+
+    public ValidationExceptionHandler(EmailService emailService) {
+        this.emailService = emailService;
+    }
 
     /**
      * Handle validation errors from @Valid annotations
@@ -140,19 +151,29 @@ public class ValidationExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
-    /**
-     * Handle general exceptions
-     */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex,
+            jakarta.servlet.http.HttpServletRequest request) {
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         response.put("error", "Internal Server Error");
         response.put("message", "An unexpected error occurred");
 
-        // Log the full error for debugging purposes
         ex.printStackTrace();
+
+        if (adminEmail != null && !adminEmail.isBlank()) {
+            long now = System.currentTimeMillis();
+            if (now - lastAlertTime.get() > ALERT_COOLDOWN_MS) {
+                lastAlertTime.set(now);
+                try {
+                    String endpoint = request.getMethod() + " " + request.getRequestURI();
+                    emailService.sendCrashAlert(adminEmail, ex.getClass().getSimpleName(), endpoint, ex.getMessage());
+                } catch (Exception mailEx) {
+                    // don't let email failure cascade
+                }
+            }
+        }
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }

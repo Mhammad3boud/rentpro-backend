@@ -45,4 +45,6 @@ public interface LeaseRepository extends JpaRepository<Lease, UUID> {
     long countActiveLeasesByOwner(@Param("ownerId") UUID ownerId, @Param("currentDate") LocalDate currentDate);
 
     List<Lease> findByLeaseStatus(LeaseStatus status);
+
+    long countByLeaseStatus(LeaseStatus status);
 }

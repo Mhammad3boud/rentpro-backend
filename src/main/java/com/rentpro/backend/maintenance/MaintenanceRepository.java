@@ -24,4 +24,6 @@ public interface MaintenanceRepository extends JpaRepository<MaintenanceRequest,
     """)
     long countByOwnerAndStatus(@Param("ownerId") UUID ownerId,
                                @Param("status") MaintenanceStatus status);
+
+    long countByStatus(MaintenanceStatus status);
 }

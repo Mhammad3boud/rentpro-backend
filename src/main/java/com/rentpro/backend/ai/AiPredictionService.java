@@ -104,6 +104,54 @@ public class AiPredictionService {
                 .orElseThrow(() -> new RuntimeException("Prediction not found"));
     }
 
+    public List<AiPrediction> getAllPredictionsForOwner(UUID ownerId) {
+        return aiPredictionRepository.findByLease_Property_Owner_UserIdOrderByPredictedAtDesc(ownerId);
+    }
+
+    public record DashboardSummaryDTO(
+            String paymentRiskLevel,
+            double paymentRiskScore,
+            long highRiskCount,
+            long maintenanceRiskCount,
+            long totalPredictions,
+            String updatedAt
+    ) {}
+
+    public DashboardSummaryDTO getDashboardSummary(UUID ownerId) {
+        List<AiPrediction> all = aiPredictionRepository
+                .findByLease_Property_Owner_UserIdOrderByPredictedAtDesc(ownerId);
+
+        if (all.isEmpty()) {
+            return new DashboardSummaryDTO("LOW", 0, 0, 0, 0, null);
+        }
+
+        long highRiskCount = all.stream()
+                .filter(p -> p.getRiskLevel() == RiskLevel.HIGH).count();
+        long maintenanceRiskCount = all.stream()
+                .filter(p -> p.getPredictionType() == PredictionType.MAINTENANCE_RISK
+                        && p.getRiskLevel() != RiskLevel.LOW).count();
+
+        AiPrediction worst = all.stream()
+                .filter(p -> p.getPredictionType() == PredictionType.LATE_PAYMENT)
+                .max((a, b) -> a.getRiskScore().compareTo(b.getRiskScore()))
+                .orElse(all.get(0));
+
+        String updatedAt = all.stream()
+                .map(AiPrediction::getPredictedAt)
+                .max(LocalDateTime::compareTo)
+                .map(LocalDateTime::toString)
+                .orElse(null);
+
+        return new DashboardSummaryDTO(
+                worst.getRiskLevel().name(),
+                worst.getRiskScore().doubleValue(),
+                highRiskCount,
+                maintenanceRiskCount,
+                all.size(),
+                updatedAt
+        );
+    }
+
     public void validateLeaseAccess(UUID userId, UUID leaseId) {
         Lease lease = leaseRepository.findById(leaseId)
                 .orElseThrow(() -> new RuntimeException("Lease not found"));
