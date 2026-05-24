@@ -31,6 +31,9 @@ public class Tenant {
 
     private String address;
 
+    @Column(name="ic_photo_url")
+    private String icPhotoUrl;
+
     @Column(name="created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -47,5 +50,7 @@ public class Tenant {
     public void setEmergencyContact(String emergencyContact) { this.emergencyContact = emergencyContact; }
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+    public String getIcPhotoUrl() { return icPhotoUrl; }
+    public void setIcPhotoUrl(String icPhotoUrl) { this.icPhotoUrl = icPhotoUrl; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

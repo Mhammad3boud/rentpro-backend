@@ -14,6 +14,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Value("${app.upload.profiles.dir:uploads/profiles}")
     private String profileUploadDir;
 
+    @Value("${app.upload.tenants.dir:uploads/tenants}")
+    private String tenantUploadDir;
+
+    @Value("${app.upload.properties.dir:uploads/properties}")
+    private String propertyUploadDir;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // Serve maintenance photos from the uploads directory
@@ -23,5 +29,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // Serve profile pictures from the uploads/profiles directory
         registry.addResourceHandler("/api/uploads/profiles/**")
                 .addResourceLocations("file:" + profileUploadDir + "/");
+
+        // Serve tenant IC/passport photos
+        registry.addResourceHandler("/uploads/tenants/**")
+                .addResourceLocations("file:" + tenantUploadDir + "/");
+
+        // Serve property images
+        registry.addResourceHandler("/uploads/properties/**")
+                .addResourceLocations("file:" + propertyUploadDir + "/");
     }
 }

@@ -72,7 +72,7 @@ public class ContractController {
                                            @RequestBody CreateTemplateRequest request) {
         JwtUserContext ctx = (JwtUserContext) auth.getDetails();
         UUID ownerId = UUID.fromString(ctx.userId());
-        return templateService.createTemplate(ownerId, request.name(), request.content());
+        return templateService.createTemplate(ownerId, request.name(), request.content(), request.type());
     }
 
     /**
@@ -81,7 +81,7 @@ public class ContractController {
     @PutMapping("/templates/{templateId}")
     public ContractTemplate updateTemplate(@PathVariable UUID templateId,
                                            @RequestBody UpdateTemplateRequest request) {
-        return templateService.updateTemplate(templateId, request.name(), request.content());
+        return templateService.updateTemplate(templateId, request.name(), request.content(), request.type());
     }
 
     /**

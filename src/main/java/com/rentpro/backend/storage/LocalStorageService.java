@@ -21,6 +21,15 @@ public class LocalStorageService implements StorageService {
     @Value("${app.upload.profiles.dir:uploads/profiles}")
     private String profileUploadDir;
 
+    @Value("${app.upload.tenants.dir:uploads/tenants}")
+    private String tenantUploadDir;
+
+    @Value("${app.upload.properties.dir:uploads/properties}")
+    private String propertyUploadDir;
+
+    @Value("${app.upload.units.dir:uploads/units}")
+    private String unitUploadDir;
+
     @Override
     public String uploadProfilePicture(String filename, MultipartFile file) throws IOException {
         Path dir = Paths.get(profileUploadDir);
@@ -38,6 +47,30 @@ public class LocalStorageService implements StorageService {
     }
 
     @Override
+    public String uploadTenantIdPhoto(String filename, MultipartFile file) throws IOException {
+        Path dir = Paths.get(tenantUploadDir);
+        ensureDirectory(dir);
+        Files.copy(file.getInputStream(), dir.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
+        return "/uploads/tenants/" + filename;
+    }
+
+    @Override
+    public String uploadPropertyImage(String filename, MultipartFile file) throws IOException {
+        Path dir = Paths.get(propertyUploadDir);
+        ensureDirectory(dir);
+        Files.copy(file.getInputStream(), dir.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
+        return "/uploads/properties/" + filename;
+    }
+
+    @Override
+    public String uploadUnitImage(String filename, MultipartFile file) throws IOException {
+        Path dir = Paths.get(unitUploadDir);
+        ensureDirectory(dir);
+        Files.copy(file.getInputStream(), dir.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
+        return "/uploads/units/" + filename;
+    }
+
+    @Override
     public void deleteByUrl(String fileUrl) {
         if (fileUrl == null || fileUrl.isBlank()) {
             return;
@@ -45,6 +78,9 @@ public class LocalStorageService implements StorageService {
 
         deleteIfLocalMapped(fileUrl, "/api/uploads/profiles/", profileUploadDir);
         deleteIfLocalMapped(fileUrl, "/uploads/maintenance/", maintenanceUploadDir);
+        deleteIfLocalMapped(fileUrl, "/uploads/tenants/", tenantUploadDir);
+        deleteIfLocalMapped(fileUrl, "/uploads/properties/", propertyUploadDir);
+        deleteIfLocalMapped(fileUrl, "/uploads/units/", unitUploadDir);
     }
 
     private void ensureDirectory(Path dir) throws IOException {

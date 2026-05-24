@@ -1,7 +1,8 @@
 package com.rentpro.backend.property.dto;
 
-import com.rentpro.backend.property.Property;
 import com.rentpro.backend.property.AssetCategory;
+import com.rentpro.backend.property.Property;
+import com.rentpro.backend.property.PropertyPhoto;
 import com.rentpro.backend.property.PropertyType;
 import com.rentpro.backend.property.UsageType;
 import com.rentpro.backend.unit.Unit;
@@ -23,9 +24,16 @@ public record PropertyWithUnitsDto(
         Double longitude,
         String waterMeterNo,
         String electricityMeterNo,
+        List<PhotoDto> photos,
         LocalDateTime createdAt,
         List<UnitDto> units
 ) {
+    public record PhotoDto(UUID photoId, String imageUrl) {
+        public static PhotoDto fromEntity(PropertyPhoto photo) {
+            return new PhotoDto(photo.getPhotoId(), photo.getImageUrl());
+        }
+    }
+
     public record UnitDto(
             UUID unitId,
             String unitNumber,
@@ -40,7 +48,7 @@ public record PropertyWithUnitsDto(
         }
     }
 
-    public static PropertyWithUnitsDto fromEntity(Property property, List<Unit> units) {
+    public static PropertyWithUnitsDto fromEntity(Property property, List<Unit> units, List<PropertyPhoto> photos) {
         return new PropertyWithUnitsDto(
                 property.getPropertyId(),
                 property.getPropertyName(),
@@ -54,6 +62,7 @@ public record PropertyWithUnitsDto(
                 property.getLongitude(),
                 property.getWaterMeterNo(),
                 property.getElectricityMeterNo(),
+                photos.stream().map(PhotoDto::fromEntity).toList(),
                 null, // createdAt not exposed in Property entity getter
                 units.stream().map(UnitDto::fromEntity).toList()
         );

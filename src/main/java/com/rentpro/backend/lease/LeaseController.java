@@ -1,12 +1,17 @@
 package com.rentpro.backend.lease;
 
+import com.rentpro.backend.contract.ContractPdfService;
 import com.rentpro.backend.lease.dto.AssignTenantRequest;
 import com.rentpro.backend.lease.dto.CheckInLeaseRequest;
 import com.rentpro.backend.lease.dto.CheckOutLeaseRequest;
 import com.rentpro.backend.lease.dto.CreateLeaseRequest;
+import com.rentpro.backend.lease.dto.RenewLeaseRequest;
 import com.rentpro.backend.lease.dto.TerminateLeaseRequest;
 import com.rentpro.backend.lease.dto.UpdateLeaseRequest;
 import com.rentpro.backend.security.JwtUserContext;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,95 +23,97 @@ import java.util.UUID;
 public class LeaseController {
 
     private final LeaseService leaseService;
+    private final ContractPdfService contractPdfService;
 
-    public LeaseController(LeaseService leaseService) {
+    public LeaseController(LeaseService leaseService, ContractPdfService contractPdfService) {
         this.leaseService = leaseService;
+        this.contractPdfService = contractPdfService;
     }
 
-    // Create new lease
     @PostMapping
-    public Lease createLease(Authentication auth,
-                             @RequestBody CreateLeaseRequest request) {
+    public Lease createLease(Authentication auth, @RequestBody CreateLeaseRequest request) {
         JwtUserContext ctx = (JwtUserContext) auth.getDetails();
-        UUID ownerId = UUID.fromString(ctx.userId());
-        return leaseService.createLease(ownerId, request);
+        return leaseService.createLease(UUID.fromString(ctx.userId()), request);
     }
 
-    // Get current user's leases (for owners)
     @GetMapping("/my-leases")
     public List<Lease> getCurrentUserLeases(Authentication auth) {
         JwtUserContext ctx = (JwtUserContext) auth.getDetails();
-        UUID userId = UUID.fromString(ctx.userId());
-        return leaseService.getOwnerLeases(userId);
+        return leaseService.getOwnerLeases(UUID.fromString(ctx.userId()));
     }
 
-    // Get tenant's leases
     @GetMapping("/tenant-leases")
     public List<Lease> getTenantLeases(Authentication auth) {
         JwtUserContext ctx = (JwtUserContext) auth.getDetails();
-        UUID tenantUserId = UUID.fromString(ctx.userId());
-        return leaseService.getTenantLeases(tenantUserId);
+        return leaseService.getTenantLeases(UUID.fromString(ctx.userId()));
     }
 
-    // Get specific lease by ID
     @GetMapping("/{leaseId}")
     public Lease getLeaseById(@PathVariable UUID leaseId) {
         return leaseService.getLeaseById(leaseId);
     }
 
-    // Update existing lease
     @PutMapping("/{leaseId}")
-    public Lease updateLease(@PathVariable UUID leaseId,
-                             @RequestBody UpdateLeaseRequest request) {
+    public Lease updateLease(@PathVariable UUID leaseId, @RequestBody UpdateLeaseRequest request) {
         return leaseService.updateLease(leaseId, request);
     }
 
-    // Get lease by tenant ID
     @GetMapping("/tenant/{tenantId}")
     public Lease getLeaseByTenantId(@PathVariable UUID tenantId) {
         return leaseService.getLeaseByTenantId(tenantId);
     }
 
-    // Assign a tenant to a property/unit (creates a new lease)
     @PostMapping("/assign")
-    public Lease assignTenant(Authentication auth,
-                              @RequestBody AssignTenantRequest request) {
+    public Lease assignTenant(Authentication auth, @RequestBody AssignTenantRequest request) {
         JwtUserContext ctx = (JwtUserContext) auth.getDetails();
-        UUID ownerId = UUID.fromString(ctx.userId());
-        return leaseService.assignTenant(ownerId, request);
+        return leaseService.assignTenant(UUID.fromString(ctx.userId()), request);
     }
 
-    // Terminate a lease (sets status to TERMINATED)
+    // Renew an active lease — terminates the old one and creates a new lease + generates PDF
+    @PostMapping("/{leaseId}/renew")
+    public ResponseEntity<byte[]> renewLease(Authentication auth,
+                                             @PathVariable UUID leaseId,
+                                             @RequestBody RenewLeaseRequest request) {
+        JwtUserContext ctx = (JwtUserContext) auth.getDetails();
+        UUID ownerId = UUID.fromString(ctx.userId());
+        Lease renewed = leaseService.renewLease(ownerId, leaseId, request);
+
+        byte[] pdf = contractPdfService.generateContractPdf(renewed.getLeaseId(), request.templateId());
+        String filename = "renewal-" + renewed.getLeaseId().toString().substring(0, 8) + ".pdf";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", filename);
+        headers.setContentLength(pdf.length);
+        headers.set("X-New-Lease-Id", renewed.getLeaseId().toString());
+
+        return ResponseEntity.ok().headers(headers).body(pdf);
+    }
+
     @PutMapping("/{leaseId}/terminate")
     public Lease terminateLease(Authentication auth,
-                               @PathVariable UUID leaseId,
-                               @RequestBody(required = false) TerminateLeaseRequest request) {
+                                @PathVariable UUID leaseId,
+                                @RequestBody(required = false) TerminateLeaseRequest request) {
         JwtUserContext ctx = (JwtUserContext) auth.getDetails();
-        UUID ownerId = UUID.fromString(ctx.userId());
-        return leaseService.terminateLease(ownerId, ctx.role(), leaseId, request);
+        return leaseService.terminateLease(UUID.fromString(ctx.userId()), ctx.role(), leaseId, request);
     }
 
-    // Check in a lease (owner confirms move-in)
     @PutMapping("/{leaseId}/check-in")
     public Lease checkInLease(Authentication auth,
                               @PathVariable UUID leaseId,
                               @RequestBody(required = false) CheckInLeaseRequest request) {
         JwtUserContext ctx = (JwtUserContext) auth.getDetails();
-        UUID ownerId = UUID.fromString(ctx.userId());
-        return leaseService.checkInLease(ownerId, ctx.role(), leaseId, request);
+        return leaseService.checkInLease(UUID.fromString(ctx.userId()), ctx.role(), leaseId, request);
     }
 
-    // Check out a lease (owner confirms move-out)
     @PutMapping("/{leaseId}/check-out")
     public Lease checkOutLease(Authentication auth,
                                @PathVariable UUID leaseId,
                                @RequestBody CheckOutLeaseRequest request) {
         JwtUserContext ctx = (JwtUserContext) auth.getDetails();
-        UUID ownerId = UUID.fromString(ctx.userId());
-        return leaseService.checkOutLease(ownerId, ctx.role(), leaseId, request);
+        return leaseService.checkOutLease(UUID.fromString(ctx.userId()), ctx.role(), leaseId, request);
     }
 
-    // Delete a lease permanently
     @DeleteMapping("/{leaseId}")
     public void deleteLease(@PathVariable UUID leaseId) {
         leaseService.deleteLease(leaseId);

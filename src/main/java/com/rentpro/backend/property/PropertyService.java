@@ -18,13 +18,16 @@ public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final UnitRepository unitRepository;
+    private final PropertyPhotoRepository propertyPhotoRepository;
 
     public PropertyService(PropertyRepository propertyRepository,
                            UserRepository userRepository,
-                           UnitRepository unitRepository) {
+                           UnitRepository unitRepository,
+                           PropertyPhotoRepository propertyPhotoRepository) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.unitRepository = unitRepository;
+        this.propertyPhotoRepository = propertyPhotoRepository;
     }
 
     @Transactional
@@ -84,7 +87,8 @@ public class PropertyService {
         return properties.stream()
                 .map(property -> {
                     List<Unit> units = unitRepository.findByProperty_PropertyId(property.getPropertyId());
-                    return PropertyWithUnitsDto.fromEntity(property, units);
+                    List<PropertyPhoto> photos = propertyPhotoRepository.findByProperty_PropertyId(property.getPropertyId());
+                    return PropertyWithUnitsDto.fromEntity(property, units, photos);
                 })
                 .toList();
     }
@@ -92,13 +96,14 @@ public class PropertyService {
     public PropertyWithUnitsDto getPropertyByIdAndOwner(UUID propertyId, UUID ownerId) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new RuntimeException("Property not found"));
-        
+
         if (!property.getOwner().getUserId().equals(ownerId)) {
             throw new RuntimeException("Unauthorized");
         }
-        
+
         List<Unit> units = unitRepository.findByProperty_PropertyId(propertyId);
-        return PropertyWithUnitsDto.fromEntity(property, units);
+        List<PropertyPhoto> photos = propertyPhotoRepository.findByProperty_PropertyId(propertyId);
+        return PropertyWithUnitsDto.fromEntity(property, units, photos);
     }
 
     @Transactional

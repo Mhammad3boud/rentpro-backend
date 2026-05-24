@@ -88,24 +88,26 @@ public class ContractTemplateService {
     }
 
     @Transactional
-    public ContractTemplate createTemplate(UUID ownerId, String name, String content) {
+    public ContractTemplate createTemplate(UUID ownerId, String name, String content, String type) {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         ContractTemplate template = new ContractTemplate();
         template.setOwner(owner);
         template.setTemplateName(name);
         template.setTemplateContent(content);
+        template.setTemplateType(type != null ? type : "INITIAL");
         template.setDefault(false);
-        
+
         return templateRepository.save(template);
     }
 
     @Transactional
-    public ContractTemplate updateTemplate(UUID templateId, String name, String content) {
+    public ContractTemplate updateTemplate(UUID templateId, String name, String content, String type) {
         ContractTemplate template = getTemplateById(templateId);
         template.setTemplateName(name);
         template.setTemplateContent(content);
+        if (type != null) template.setTemplateType(type);
         return templateRepository.save(template);
     }
 

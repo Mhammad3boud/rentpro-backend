@@ -47,4 +47,7 @@ public interface LeaseRepository extends JpaRepository<Lease, UUID> {
     List<Lease> findByLeaseStatus(LeaseStatus status);
 
     long countByLeaseStatus(LeaseStatus status);
+
+    @Query("select l from Lease l where l.leaseStatus = com.rentpro.backend.lease.LeaseStatus.ACTIVE and l.endDate < :today")
+    List<Lease> findActiveExpiredLeases(@Param("today") LocalDate today);
 }

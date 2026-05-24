@@ -17,6 +17,7 @@ import com.rentpro.backend.lease.dto.AssignTenantRequest;
 import com.rentpro.backend.lease.dto.CheckInLeaseRequest;
 import com.rentpro.backend.lease.dto.CheckOutLeaseRequest;
 import com.rentpro.backend.lease.dto.CreateLeaseRequest;
+import com.rentpro.backend.lease.dto.RenewLeaseRequest;
 import com.rentpro.backend.lease.dto.TerminateLeaseRequest;
 import com.rentpro.backend.lease.dto.UpdateLeaseRequest;
 import org.springframework.stereotype.Service;
@@ -423,6 +424,56 @@ public class LeaseService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return saved;
+    }
+
+    @Transactional
+    public Lease renewLease(UUID ownerId, UUID leaseId, RenewLeaseRequest request) {
+        Lease existing = leaseRepository.findById(leaseId)
+                .orElseThrow(() -> new RuntimeException("Lease not found"));
+
+        if (!existing.getProperty().getOwner().getUserId().equals(ownerId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        if (existing.getLeaseStatus() != LeaseStatus.ACTIVE) {
+            throw new RuntimeException("Only active leases can be renewed");
+        }
+
+        // Terminate existing lease on the day before new start
+        LocalDate terminationDate = request.newStartDate() != null
+                ? request.newStartDate().minusDays(1)
+                : LocalDate.now();
+        applyTermination(existing, "Renewed", null, terminationDate);
+        leaseRepository.save(existing);
+
+        // Create new lease inheriting property/unit/tenant
+        Lease renewal = new Lease();
+        renewal.setProperty(existing.getProperty());
+        renewal.setUnit(existing.getUnit());
+        renewal.setTenant(existing.getTenant());
+        renewal.setMonthlyRent(request.monthlyRent() != null ? request.monthlyRent() : existing.getMonthlyRent());
+        renewal.setSecurityDeposit(request.securityDeposit() != null ? request.securityDeposit() : existing.getSecurityDeposit());
+        renewal.setDepositBreakdownJson(serializeBreakdown(request.depositBreakdown()));
+        renewal.setStartDate(request.newStartDate());
+        renewal.setEndDate(request.newEndDate());
+        renewal.setLeaseStatus(LeaseStatus.ACTIVE);
+        renewal.setPreviousLeaseId(leaseId);
+
+        String leaseName = existing.getUnit() == null
+                ? existing.getProperty().getPropertyName() + " Lease"
+                : existing.getProperty().getPropertyName() + " - Unit " + existing.getUnit().getUnitNumber();
+        renewal.setLeaseName(leaseName);
+
+        Lease saved = leaseRepository.save(renewal);
+        rentPaymentService.seedCurrentMonthForLease(saved);
+
+        String unitNumber = existing.getUnit() != null ? existing.getUnit().getUnitNumber() : null;
+        String location = unitNumber != null
+                ? existing.getProperty().getPropertyName() + " Unit " + unitNumber
+                : existing.getProperty().getPropertyName();
+        activityService.logActivity(ownerId, com.rentpro.backend.activity.ActivityType.LEASE_UPDATED,
+                "Lease Renewed", "Lease renewed for " + existing.getTenant().getFullName() + " at " + location);
+
         return saved;
     }
 

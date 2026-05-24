@@ -105,6 +105,9 @@ public class Lease {
     @JsonIgnore
     private String checkOutChecklistJson;
 
+    @Column(name = "previous_lease_id")
+    private UUID previousLeaseId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -200,6 +203,9 @@ public class Lease {
     public List<LeaseChecklistItem> getCheckOutChecklist() {
         return parseChecklist(checkOutChecklistJson);
     }
+
+    public UUID getPreviousLeaseId() { return previousLeaseId; }
+    public void setPreviousLeaseId(UUID previousLeaseId) { this.previousLeaseId = previousLeaseId; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 

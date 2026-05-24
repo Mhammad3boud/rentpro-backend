@@ -1,6 +1,7 @@
 package com.rentpro.backend.contract;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rentpro.backend.user.User;
 import jakarta.persistence.*;
 
@@ -29,6 +30,9 @@ public class ContractTemplate {
     @Column(name = "is_default")
     private boolean isDefault = false;
 
+    @Column(name = "template_type", length = 50)
+    private String templateType = "INITIAL";
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -47,8 +51,12 @@ public class ContractTemplate {
     public String getTemplateContent() { return templateContent; }
     public void setTemplateContent(String templateContent) { this.templateContent = templateContent; }
 
+    @JsonProperty("isDefault")
     public boolean isDefault() { return isDefault; }
     public void setDefault(boolean isDefault) { this.isDefault = isDefault; }
+
+    public String getTemplateType() { return templateType; }
+    public void setTemplateType(String templateType) { this.templateType = templateType; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 

@@ -9,6 +9,12 @@ public interface StorageService {
 
     String uploadMaintenancePhoto(String filename, MultipartFile file) throws IOException;
 
+    String uploadTenantIdPhoto(String filename, MultipartFile file) throws IOException;
+
+    String uploadPropertyImage(String filename, MultipartFile file) throws IOException;
+
+    String uploadUnitImage(String filename, MultipartFile file) throws IOException;
+
     void deleteByUrl(String fileUrl);
 }
 

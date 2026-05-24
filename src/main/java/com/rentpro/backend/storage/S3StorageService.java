@@ -67,6 +67,27 @@ public class S3StorageService implements StorageService {
     }
 
     @Override
+    public String uploadTenantIdPhoto(String filename, MultipartFile file) throws IOException {
+        String key = buildKey("tenants/" + filename);
+        upload(key, file);
+        return toPublicUrl(key);
+    }
+
+    @Override
+    public String uploadPropertyImage(String filename, MultipartFile file) throws IOException {
+        String key = buildKey("properties/" + filename);
+        upload(key, file);
+        return toPublicUrl(key);
+    }
+
+    @Override
+    public String uploadUnitImage(String filename, MultipartFile file) throws IOException {
+        String key = buildKey("units/" + filename);
+        upload(key, file);
+        return toPublicUrl(key);
+    }
+
+    @Override
     public void deleteByUrl(String fileUrl) {
         if (fileUrl == null || fileUrl.isBlank()) {
             return;
