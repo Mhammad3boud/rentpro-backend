@@ -57,11 +57,19 @@ public class ActivityService {
     }
 
     public void logPaymentReceived(UUID userId, String propertyName, String unitNumber, String monthYear, double amount) {
-        String location = unitNumber != null 
-            ? String.format("%s Unit %s", propertyName, unitNumber) 
+        String location = unitNumber != null
+            ? String.format("%s Unit %s", propertyName, unitNumber)
             : propertyName;
         String desc = String.format("Payment of MYR %.0f received for %s (%s)", amount, location, monthYear);
         logActivity(userId, ActivityType.PAYMENT_RECEIVED, "Payment Received", desc);
+    }
+
+    public void logPaymentSent(UUID tenantUserId, String propertyName, String unitNumber, String monthYear, double amount) {
+        String location = unitNumber != null
+            ? String.format("%s Unit %s", propertyName, unitNumber)
+            : propertyName;
+        String desc = String.format("Rent payment of MYR %.0f sent for %s (%s)", amount, location, monthYear);
+        logActivity(tenantUserId, ActivityType.PAYMENT_SENT, "Rent Paid", desc);
     }
 
     public void logPaymentUpdated(UUID userId, String propertyName, String unitNumber, String monthYear) {

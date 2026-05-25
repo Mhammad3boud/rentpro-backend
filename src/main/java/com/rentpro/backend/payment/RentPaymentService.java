@@ -87,10 +87,16 @@ public class RentPaymentService {
         String unitNumber = lease.getUnit() != null ? lease.getUnit().getUnitNumber() : null;
         UUID actorId = ownerFlow ? ownerId : tenantUserId;
         if (request.amountPaid() != null && request.amountPaid().compareTo(BigDecimal.ZERO) > 0) {
-            activityService.logPaymentReceived(actorId, propertyName, unitNumber,
-                    request.monthYear(), request.amountPaid().doubleValue());
+            // Owner sees "Payment Received"; tenant sees "Rent Paid"
+            if (ownerFlow) {
+                activityService.logPaymentReceived(actorId, propertyName, unitNumber,
+                        request.monthYear(), request.amountPaid().doubleValue());
+            } else {
+                activityService.logPaymentSent(actorId, propertyName, unitNumber,
+                        request.monthYear(), request.amountPaid().doubleValue());
+            }
             if (leaseTenantUserId != null && !leaseTenantUserId.equals(actorId)) {
-                activityService.logPaymentReceived(leaseTenantUserId, propertyName, unitNumber,
+                activityService.logPaymentSent(leaseTenantUserId, propertyName, unitNumber,
                         request.monthYear(), request.amountPaid().doubleValue());
             }
         } else {
@@ -136,18 +142,28 @@ public class RentPaymentService {
         return PaymentStatus.PENDING;
     }
 
-    // Called immediately after a new lease is created so the tenant sees the current month right away
+    // Called immediately after a new lease is created so the tenant sees the first pending payment right away.
+    // Seeds the current month if the lease has already started, or the lease's start month if it begins
+    // in a future month (e.g. a renewal with a future start date).
     public void seedCurrentMonthForLease(Lease lease) {
         YearMonth currentMonth = YearMonth.now();
-        // Don't seed if lease hasn't started yet this month
-        if (lease.getStartDate() != null && currentMonth.isBefore(YearMonth.from(lease.getStartDate()))) {
-            return;
+
+        // Use the later of today's month or the lease's start month so future-starting renewals
+        // always get a pending record created immediately.
+        YearMonth billingMonth = currentMonth;
+        if (lease.getStartDate() != null) {
+            YearMonth startMonth = YearMonth.from(lease.getStartDate());
+            if (startMonth.isAfter(currentMonth)) {
+                billingMonth = startMonth;
+            }
         }
+
         // Don't seed if already past lease end date
-        if (lease.getEndDate() != null && currentMonth.isAfter(YearMonth.from(lease.getEndDate()))) {
+        if (lease.getEndDate() != null && billingMonth.isAfter(YearMonth.from(lease.getEndDate()))) {
             return;
         }
-        String monthYear = currentMonth.toString();
+
+        String monthYear = billingMonth.toString();
         boolean exists = rentPaymentRepository
                 .findByLease_LeaseIdAndMonthYear(lease.getLeaseId(), monthYear)
                 .isPresent();
@@ -158,7 +174,7 @@ public class RentPaymentService {
         pending.setMonthYear(monthYear);
         pending.setAmountExpected(lease.getMonthlyRent() != null ? lease.getMonthlyRent() : BigDecimal.ZERO);
         pending.setAmountPaid(BigDecimal.ZERO);
-        pending.setDueDate(LocalDate.of(currentMonth.getYear(), currentMonth.getMonth(), 7));
+        pending.setDueDate(LocalDate.of(billingMonth.getYear(), billingMonth.getMonth(), 7));
         pending.setPaymentStatus(RentPayment.PaymentStatus.PENDING);
         rentPaymentRepository.save(pending);
     }

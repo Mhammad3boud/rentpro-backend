@@ -41,17 +41,18 @@ public class TenantService {
                 .orElseThrow(() -> new RuntimeException("Owner not found"));
 
         // Prevent duplicate emails
-        userRepository.findByEmail(request.email())
+        userRepository.findByEmail(request.email().toLowerCase().trim())
                 .ifPresent(u -> { throw new RuntimeException("Email already exists"); });
 
         // Create tenant login user
         User tenantUser = new User();
-        tenantUser.setEmail(request.email());
+        tenantUser.setEmail(request.email().toLowerCase().trim());
         tenantUser.setPassword(passwordEncoder.encode(request.password()));
         tenantUser.setRole(Role.TENANT);
         tenantUser.setFullName(request.fullName());
         tenantUser.setPhone(request.phone());
         tenantUser.setAddress(request.address());
+        tenantUser.setStatus(true);
         tenantUser = userRepository.save(tenantUser);
 
         // Create tenant profile

@@ -92,6 +92,16 @@ public class LeaseService {
             unit = null;
         }
 
+        // Guard: reject if an active lease already exists for this unit/property
+        if (unit != null) {
+            leaseRepository.findActiveLeaseByPropertyAndUnit(property.getPropertyId(), unit.getUnitId())
+                    .ifPresent(l -> { throw new RuntimeException("Unit already has an active lease"); });
+        } else {
+            leaseRepository.findFirstByProperty_PropertyIdAndUnitIsNullAndLeaseStatus(
+                            property.getPropertyId(), LeaseStatus.ACTIVE)
+                    .ifPresent(l -> { throw new RuntimeException("Property already has an active lease"); });
+        }
+
         Lease lease = new Lease();
         lease.setProperty(property);
         lease.setUnit(unit);
@@ -444,7 +454,7 @@ public class LeaseService {
                 ? request.newStartDate().minusDays(1)
                 : LocalDate.now();
         applyTermination(existing, "Renewed", null, terminationDate);
-        leaseRepository.save(existing);
+        leaseRepository.saveAndFlush(existing);
 
         // Create new lease inheriting property/unit/tenant
         Lease renewal = new Lease();

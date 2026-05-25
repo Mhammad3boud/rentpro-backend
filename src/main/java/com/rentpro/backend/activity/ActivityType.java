@@ -9,6 +9,7 @@ public enum ActivityType {
     
     // Payments
     PAYMENT_RECEIVED,
+    PAYMENT_SENT,
     PAYMENT_UPDATED,
     PAYMENT_OVERDUE,
     
