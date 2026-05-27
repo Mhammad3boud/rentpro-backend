@@ -25,7 +25,10 @@ public class CorsConfig {
                 "http://localhost:8100",
                 "http://localhost:8101",
                 "http://localhost:8102",
-                "http://localhost:8103"
+                "http://localhost:8103",
+                "capacitor://localhost",
+                "ionic://localhost",
+                "http://localhost"
         ));
 
         if (corsAllowedOrigins != null && !corsAllowedOrigins.isBlank()) {
