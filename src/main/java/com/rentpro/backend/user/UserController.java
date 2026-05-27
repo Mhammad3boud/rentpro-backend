@@ -6,6 +6,7 @@ import com.rentpro.backend.tenant.TenantRepository;
 import com.rentpro.backend.user.dto.ChangePasswordRequest;
 import com.rentpro.backend.user.dto.UpdateProfileRequest;
 import com.rentpro.backend.user.dto.UserProfileResponse;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -112,6 +113,7 @@ public class UserController {
         ));
     }
 
+    @Transactional
     @PostMapping("/me/password")
     public ResponseEntity<?> changePassword(
             Authentication authentication,
