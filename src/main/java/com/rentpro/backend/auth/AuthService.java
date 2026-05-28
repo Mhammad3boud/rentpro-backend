@@ -82,7 +82,7 @@ public class AuthService {
             PasswordResetToken resetToken = new PasswordResetToken();
             resetToken.setToken(UUID.randomUUID().toString());
             resetToken.setUser(user);
-            resetToken.setExpiresAt(LocalDateTime.now().plusHours(1));
+            resetToken.setExpiresAt(LocalDateTime.now().plusMinutes(5));
             resetTokenRepository.save(resetToken);
 
             try {

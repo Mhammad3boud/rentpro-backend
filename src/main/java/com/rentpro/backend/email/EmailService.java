@@ -47,7 +47,7 @@ public class EmailService {
         msg.setText(
             "Hello,\n\n" +
             "We received a request to reset your RentPro password.\n\n" +
-            "Click the link below to set a new password (expires in 1 hour):\n\n" +
+            "Click the link below to set a new password (expires in 5 minutes):\n\n" +
             resetLink + "\n\n" +
             "If you didn't request this, you can safely ignore this email.\n\n" +
             "— The RentPro Team"
