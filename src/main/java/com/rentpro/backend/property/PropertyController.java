@@ -86,7 +86,11 @@ public class PropertyController {
             return ResponseEntity.badRequest().body(Map.of("error", "No file uploaded"));
         }
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
+        String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
+        boolean isImage = (contentType != null && contentType.startsWith("image/"))
+                || originalName.endsWith(".jpg") || originalName.endsWith(".jpeg")
+                || originalName.endsWith(".png") || originalName.endsWith(".webp") || originalName.endsWith(".heic");
+        if (!isImage) {
             return ResponseEntity.badRequest().body(Map.of("error", "Only image files are allowed"));
         }
 
