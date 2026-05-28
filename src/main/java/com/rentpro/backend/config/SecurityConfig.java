@@ -74,7 +74,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOrigins(List.of(
+                "https://rentpro-frontend-ashen.vercel.app",
+                "http://localhost:4200",
+                "http://localhost:8100",
+                "http://localhost:8104",
+                "capacitor://localhost",
+                "ionic://localhost"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
