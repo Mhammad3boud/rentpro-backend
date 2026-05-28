@@ -10,6 +10,7 @@ import com.rentpro.backend.user.User;
 import com.rentpro.backend.user.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -72,6 +73,7 @@ public class AuthService {
         return new AuthResponse(token, "Bearer", null, null, null);
     }
 
+    @Transactional
     public void forgotPassword(String email) {
         String normalized = email.toLowerCase().trim();
 
@@ -100,6 +102,7 @@ public class AuthService {
         });
     }
 
+    @Transactional
     public void resetPassword(String token, String newPassword) {
         PasswordResetToken resetToken = resetTokenRepository.findById(token)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid or expired reset link"));
