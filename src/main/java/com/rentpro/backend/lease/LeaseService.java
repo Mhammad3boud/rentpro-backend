@@ -1,6 +1,7 @@
 package com.rentpro.backend.lease;
 
 import com.rentpro.backend.activity.ActivityService;
+import com.rentpro.backend.email.EmailService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rentpro.backend.notification.NotificationService;
@@ -39,6 +40,7 @@ public class LeaseService {
     private final ActivityService activityService;
     private final NotificationService notificationService;
     private final RentPaymentService rentPaymentService;
+    private final EmailService emailService;
 
     public LeaseService(LeaseRepository leaseRepository,
                         PropertyRepository propertyRepository,
@@ -46,7 +48,8 @@ public class LeaseService {
                         TenantRepository tenantRepository,
                         ActivityService activityService,
                         NotificationService notificationService,
-                        RentPaymentService rentPaymentService) {
+                        RentPaymentService rentPaymentService,
+                        EmailService emailService) {
         this.leaseRepository = leaseRepository;
         this.propertyRepository = propertyRepository;
         this.unitRepository = unitRepository;
@@ -54,6 +57,7 @@ public class LeaseService {
         this.activityService = activityService;
         this.notificationService = notificationService;
         this.rentPaymentService = rentPaymentService;
+        this.emailService = emailService;
     }
 
     public Lease createLease(UUID ownerId, CreateLeaseRequest request) {
@@ -134,7 +138,23 @@ public class LeaseService {
         if (tenantUserId != null && !tenantUserId.equals(ownerId)) {
             activityService.logLeaseCreated(tenantUserId, tenant.getFullName(), property.getPropertyName(), unitNumber);
         }
-        
+
+        // Email tenant with lease details
+        if (tenant.getUser() != null && tenant.getUser().getEmail() != null) {
+            try {
+                emailService.sendLeaseCreatedEmail(
+                    tenant.getUser().getEmail(),
+                    tenant.getFullName(),
+                    saved.getLeaseName(),
+                    saved.getStartDate() != null ? saved.getStartDate().toString() : "—",
+                    saved.getEndDate() != null ? saved.getEndDate().toString() : "—",
+                    saved.getMonthlyRent() != null ? saved.getMonthlyRent().doubleValue() : 0
+                );
+            } catch (Exception e) {
+                System.err.println("[EMAIL] Failed to send lease created email: " + e.getMessage());
+            }
+        }
+
         return saved;
     }
 

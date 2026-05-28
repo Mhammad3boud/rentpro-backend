@@ -1,6 +1,7 @@
 package com.rentpro.backend.payment;
 
 import com.rentpro.backend.activity.ActivityService;
+import com.rentpro.backend.email.EmailService;
 import com.rentpro.backend.lease.Lease;
 import com.rentpro.backend.lease.LeaseRepository;
 // import com.rentpro.backend.payment.RentPayment;
@@ -23,13 +24,16 @@ public class RentPaymentService {
     private final RentPaymentRepository rentPaymentRepository;
     private final LeaseRepository leaseRepository;
     private final ActivityService activityService;
+    private final EmailService emailService;
 
     public RentPaymentService(RentPaymentRepository rentPaymentRepository,
                               LeaseRepository leaseRepository,
-                              ActivityService activityService) {
+                              ActivityService activityService,
+                              EmailService emailService) {
         this.rentPaymentRepository = rentPaymentRepository;
         this.leaseRepository = leaseRepository;
         this.activityService = activityService;
+        this.emailService = emailService;
     }
 
     // Owner records or edits payment for a lease/month
@@ -98,6 +102,19 @@ public class RentPaymentService {
             if (leaseTenantUserId != null && !leaseTenantUserId.equals(actorId)) {
                 activityService.logPaymentSent(leaseTenantUserId, propertyName, unitNumber,
                         request.monthYear(), request.amountPaid().doubleValue());
+            }
+            // Email payment confirmation to tenant
+            String tenantEmail = lease.getTenant() != null && lease.getTenant().getUser() != null
+                    ? lease.getTenant().getUser().getEmail() : null;
+            String tenantName = lease.getTenant() != null ? lease.getTenant().getFullName() : null;
+            String location = unitNumber != null ? propertyName + " - Unit " + unitNumber : propertyName;
+            if (tenantEmail != null && tenantName != null) {
+                try {
+                    emailService.sendPaymentReceivedEmail(tenantEmail, tenantName, location,
+                            request.monthYear(), request.amountPaid().doubleValue());
+                } catch (Exception e) {
+                    System.err.println("[EMAIL] Failed to send payment confirmation: " + e.getMessage());
+                }
             }
         } else {
             activityService.logPaymentUpdated(actorId, propertyName, unitNumber, request.monthYear());

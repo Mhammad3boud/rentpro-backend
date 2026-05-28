@@ -1,6 +1,7 @@
 package com.rentpro.backend.maintenance;
 
 import com.rentpro.backend.activity.ActivityService;
+import com.rentpro.backend.email.EmailService;
 import com.rentpro.backend.lease.Lease;
 import com.rentpro.backend.lease.LeaseRepository;
 import com.rentpro.backend.maintenance.dto.CreateMaintenanceRequest;
@@ -36,6 +37,7 @@ public class MaintenanceService {
     private final ActivityService activityService;
     private final NotificationService notificationService;
     private final StorageService storageService;
+    private final EmailService emailService;
 
     public MaintenanceService(MaintenanceRepository repository,
                               MaintenancePhotoRepository photoRepository,
@@ -45,7 +47,8 @@ public class MaintenanceService {
                               LeaseRepository leaseRepository,
                               ActivityService activityService,
                               NotificationService notificationService,
-                              StorageService storageService) {
+                              StorageService storageService,
+                              EmailService emailService) {
         this.repository = repository;
         this.photoRepository = photoRepository;
         this.tenantRepository = tenantRepository;
@@ -55,6 +58,7 @@ public class MaintenanceService {
         this.activityService = activityService;
         this.notificationService = notificationService;
         this.storageService = storageService;
+        this.emailService = emailService;
     }
 
     public MaintenanceRequest createRequest(UUID currentUserId, String role, CreateMaintenanceRequest request) {
@@ -139,7 +143,23 @@ public class MaintenanceService {
                 "MAINTENANCE_REQUEST",
                 saved.getRequestId()
         );
-        
+
+        // Email owner about new maintenance request
+        String ownerEmail = property.getOwner().getEmail();
+        if (ownerEmail != null) {
+            try {
+                emailService.sendMaintenanceCreatedEmail(
+                    ownerEmail,
+                    property.getOwner().getFullName() != null ? property.getOwner().getFullName() : "Property Owner",
+                    request.title(),
+                    location,
+                    tenantName
+                );
+            } catch (Exception e) {
+                System.err.println("[EMAIL] Failed to send maintenance created email: " + e.getMessage());
+            }
+        }
+
         return saved;
     }
 
@@ -261,8 +281,23 @@ public class MaintenanceService {
                     "MAINTENANCE_REQUEST",
                     saved.getRequestId()
             );
+
+            // Email tenant about status change
+            String tenantEmail = maintenance.getTenant().getUser().getEmail();
+            if (tenantEmail != null) {
+                try {
+                    emailService.sendMaintenanceStatusEmail(
+                        tenantEmail,
+                        maintenance.getTenant().getFullName(),
+                        maintenance.getTitle(),
+                        request.status().name().replace('_', ' ')
+                    );
+                } catch (Exception e) {
+                    System.err.println("[EMAIL] Failed to send maintenance status email: " + e.getMessage());
+                }
+            }
         }
-        
+
         return saved;
     }
 

@@ -1,6 +1,7 @@
 package com.rentpro.backend.tenant;
 
 import com.rentpro.backend.activity.ActivityService;
+import com.rentpro.backend.email.EmailService;
 import com.rentpro.backend.lease.Lease;
 import com.rentpro.backend.lease.LeaseRepository;
 import com.rentpro.backend.lease.LeaseStatus;
@@ -25,17 +26,20 @@ public class TenantService {
     private final LeaseRepository leaseRepository;
     private final PasswordEncoder passwordEncoder;
     private final ActivityService activityService;
+    private final EmailService emailService;
 
     public TenantService(TenantRepository tenantRepository,
                          UserRepository userRepository,
                          LeaseRepository leaseRepository,
                          PasswordEncoder passwordEncoder,
-                         ActivityService activityService) {
+                         ActivityService activityService,
+                         EmailService emailService) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.leaseRepository = leaseRepository;
         this.passwordEncoder = passwordEncoder;
         this.activityService = activityService;
+        this.emailService = emailService;
     }
 
     // OWNER creates tenant (User + Tenant profile)
@@ -70,6 +74,19 @@ public class TenantService {
 
         Tenant saved = tenantRepository.save(tenant);
         activityService.logTenantCreated(ownerId, saved.getFullName());
+
+        try {
+            emailService.sendTenantWelcomeEmail(
+                saved.getUser().getEmail(),
+                saved.getFullName(),
+                owner.getFullName() != null ? owner.getFullName() : "Your landlord",
+                "your property",
+                request.password()
+            );
+        } catch (Exception e) {
+            System.err.println("[EMAIL] Failed to send welcome email to tenant: " + e.getMessage());
+        }
+
         return saved;
     }
 
