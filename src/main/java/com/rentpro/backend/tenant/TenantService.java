@@ -1,5 +1,6 @@
 package com.rentpro.backend.tenant;
 
+import com.rentpro.backend.activity.ActivityService;
 import com.rentpro.backend.lease.Lease;
 import com.rentpro.backend.lease.LeaseRepository;
 import com.rentpro.backend.lease.LeaseStatus;
@@ -23,15 +24,18 @@ public class TenantService {
     private final UserRepository userRepository;
     private final LeaseRepository leaseRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ActivityService activityService;
 
     public TenantService(TenantRepository tenantRepository,
                          UserRepository userRepository,
                          LeaseRepository leaseRepository,
-                         PasswordEncoder passwordEncoder) {
+                         PasswordEncoder passwordEncoder,
+                         ActivityService activityService) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.leaseRepository = leaseRepository;
         this.passwordEncoder = passwordEncoder;
+        this.activityService = activityService;
     }
 
     // OWNER creates tenant (User + Tenant profile)
@@ -64,7 +68,9 @@ public class TenantService {
         tenant.setEmergencyContact(request.emergencyContact());
         tenant.setAddress(request.address());
 
-        return tenantRepository.save(tenant);
+        Tenant saved = tenantRepository.save(tenant);
+        activityService.logTenantCreated(ownerId, saved.getFullName());
+        return saved;
     }
 
     // OWNER lists only their tenants

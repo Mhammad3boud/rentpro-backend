@@ -1,5 +1,6 @@
 package com.rentpro.backend.property;
 
+import com.rentpro.backend.activity.ActivityService;
 import com.rentpro.backend.property.dto.CreatePropertyRequest;
 import com.rentpro.backend.property.dto.PropertyWithUnitsDto;
 import com.rentpro.backend.unit.Unit;
@@ -19,15 +20,18 @@ public class PropertyService {
     private final UserRepository userRepository;
     private final UnitRepository unitRepository;
     private final PropertyPhotoRepository propertyPhotoRepository;
+    private final ActivityService activityService;
 
     public PropertyService(PropertyRepository propertyRepository,
                            UserRepository userRepository,
                            UnitRepository unitRepository,
-                           PropertyPhotoRepository propertyPhotoRepository) {
+                           PropertyPhotoRepository propertyPhotoRepository,
+                           ActivityService activityService) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.unitRepository = unitRepository;
         this.propertyPhotoRepository = propertyPhotoRepository;
+        this.activityService = activityService;
     }
 
     @Transactional
@@ -74,6 +78,8 @@ public class PropertyService {
                 }
             }
         }
+
+        activityService.logPropertyCreated(ownerId, savedProperty.getPropertyName());
 
         return savedProperty;
     }
