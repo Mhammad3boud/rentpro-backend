@@ -1,50 +1,50 @@
 package com.rentpro.backend.email;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    @Value("${resend.api.key}")
+    private String resendApiKey;
 
     @Value("${app.frontend.base-url:http://localhost:8104}")
     private String frontendBaseUrl;
 
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
-    }
+    private static final String FROM = "RentPro <onboarding@resend.dev>";
+    private static final String RESEND_URL = "https://api.resend.com/emails";
 
-    public void sendCrashAlert(String toEmail, String errorType, String endpoint, String message) {
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setFrom(fromEmail);
-        msg.setTo(toEmail);
-        msg.setSubject("[RentPro] Server Error — " + errorType);
-        msg.setText(
-            "A server error occurred in RentPro.\n\n" +
-            "Error type : " + errorType + "\n" +
-            "Endpoint   : " + endpoint + "\n" +
-            "Message    : " + (message != null ? message : "(none)") + "\n" +
-            "Time       : " + java.time.LocalDateTime.now() + "\n\n" +
-            "Check the server logs for the full stack trace."
+    private void send(String to, String subject, String text) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(resendApiKey);
+
+        Map<String, Object> body = Map.of(
+            "from", FROM,
+            "to", List.of(to),
+            "subject", subject,
+            "text", text
         );
-        mailSender.send(msg);
+
+        restTemplate.exchange(RESEND_URL, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
     }
 
     public void sendPasswordResetEmail(String toEmail, String token) {
-        String base = frontendBaseUrl.endsWith("/") ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1) : frontendBaseUrl;
+        String base = frontendBaseUrl.endsWith("/")
+            ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1)
+            : frontendBaseUrl;
         String resetLink = base + "/reset-password?token=" + token;
 
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setFrom(fromEmail);
-        msg.setTo(toEmail);
-        msg.setSubject("RentPro – Password Reset Request");
-        msg.setText(
+        send(toEmail,
+            "RentPro – Password Reset Request",
             "Hello,\n\n" +
             "We received a request to reset your RentPro password.\n\n" +
             "Click the link below to set a new password (expires in 5 minutes):\n\n" +
@@ -52,7 +52,17 @@ public class EmailService {
             "If you didn't request this, you can safely ignore this email.\n\n" +
             "— The RentPro Team"
         );
+    }
 
-        mailSender.send(msg);
+    public void sendCrashAlert(String toEmail, String errorType, String endpoint, String message) {
+        send(toEmail,
+            "[RentPro] Server Error — " + errorType,
+            "A server error occurred in RentPro.\n\n" +
+            "Error type : " + errorType + "\n" +
+            "Endpoint   : " + endpoint + "\n" +
+            "Message    : " + (message != null ? message : "(none)") + "\n" +
+            "Time       : " + java.time.LocalDateTime.now() + "\n\n" +
+            "Check the server logs for the full stack trace."
+        );
     }
 }
