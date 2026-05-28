@@ -87,8 +87,15 @@ public class AuthService {
 
             try {
                 emailService.sendPasswordResetEmail(user.getEmail(), resetToken.getToken());
+                System.out.println("[EMAIL] Password reset email sent to: " + user.getEmail());
             } catch (Exception e) {
-                System.err.println("Failed to send password reset email: " + e.getMessage());
+                System.err.println("[EMAIL ERROR] Failed to send password reset email to " + user.getEmail());
+                System.err.println("[EMAIL ERROR] Cause: " + e.getClass().getSimpleName() + " — " + e.getMessage());
+                Throwable cause = e.getCause();
+                while (cause != null) {
+                    System.err.println("[EMAIL ERROR] Caused by: " + cause.getClass().getSimpleName() + " — " + cause.getMessage());
+                    cause = cause.getCause();
+                }
             }
         });
     }
