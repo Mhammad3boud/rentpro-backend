@@ -2,6 +2,7 @@ package com.rentpro.backend.maintenance;
 
 import com.rentpro.backend.activity.ActivityService;
 import com.rentpro.backend.email.EmailService;
+import com.rentpro.backend.push.PushService;
 import com.rentpro.backend.lease.Lease;
 import com.rentpro.backend.lease.LeaseRepository;
 import com.rentpro.backend.maintenance.dto.CreateMaintenanceRequest;
@@ -38,6 +39,7 @@ public class MaintenanceService {
     private final NotificationService notificationService;
     private final StorageService storageService;
     private final EmailService emailService;
+    private final PushService pushService;
 
     public MaintenanceService(MaintenanceRepository repository,
                               MaintenancePhotoRepository photoRepository,
@@ -48,7 +50,8 @@ public class MaintenanceService {
                               ActivityService activityService,
                               NotificationService notificationService,
                               StorageService storageService,
-                              EmailService emailService) {
+                              EmailService emailService,
+                              PushService pushService) {
         this.repository = repository;
         this.photoRepository = photoRepository;
         this.tenantRepository = tenantRepository;
@@ -59,6 +62,7 @@ public class MaintenanceService {
         this.notificationService = notificationService;
         this.storageService = storageService;
         this.emailService = emailService;
+        this.pushService = pushService;
     }
 
     public MaintenanceRequest createRequest(UUID currentUserId, String role, CreateMaintenanceRequest request) {
@@ -144,7 +148,7 @@ public class MaintenanceService {
                 saved.getRequestId()
         );
 
-        // Email owner about new maintenance request
+        // Email + push owner about new maintenance request
         String ownerEmail = property.getOwner().getEmail();
         if (ownerEmail != null) {
             try {
@@ -159,6 +163,8 @@ public class MaintenanceService {
                 System.err.println("[EMAIL] Failed to send maintenance created email: " + e.getMessage());
             }
         }
+        pushService.sendToUser(ownerId, "New Maintenance Request",
+                tenantName + ": \"" + request.title() + "\"", "/tabs/maintenance");
 
         return saved;
     }
@@ -282,7 +288,7 @@ public class MaintenanceService {
                     saved.getRequestId()
             );
 
-            // Email tenant about status change
+            // Email + push tenant about status change
             String tenantEmail = maintenance.getTenant().getUser().getEmail();
             if (tenantEmail != null) {
                 try {
@@ -296,6 +302,9 @@ public class MaintenanceService {
                     System.err.println("[EMAIL] Failed to send maintenance status email: " + e.getMessage());
                 }
             }
+            pushService.sendToUser(tenantUserId, "Maintenance Updated",
+                    "\"" + maintenance.getTitle() + "\" is now "
+                    + request.status().name().replace('_', ' '), "/tabs/maintenance");
         }
 
         return saved;

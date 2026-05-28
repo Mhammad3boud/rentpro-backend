@@ -2,6 +2,7 @@ package com.rentpro.backend.payment;
 
 import com.rentpro.backend.activity.ActivityService;
 import com.rentpro.backend.email.EmailService;
+import com.rentpro.backend.push.PushService;
 import com.rentpro.backend.lease.Lease;
 import com.rentpro.backend.lease.LeaseRepository;
 // import com.rentpro.backend.payment.RentPayment;
@@ -25,15 +26,18 @@ public class RentPaymentService {
     private final LeaseRepository leaseRepository;
     private final ActivityService activityService;
     private final EmailService emailService;
+    private final PushService pushService;
 
     public RentPaymentService(RentPaymentRepository rentPaymentRepository,
                               LeaseRepository leaseRepository,
                               ActivityService activityService,
-                              EmailService emailService) {
+                              EmailService emailService,
+                              PushService pushService) {
         this.rentPaymentRepository = rentPaymentRepository;
         this.leaseRepository = leaseRepository;
         this.activityService = activityService;
         this.emailService = emailService;
+        this.pushService = pushService;
     }
 
     // Owner records or edits payment for a lease/month
@@ -115,6 +119,11 @@ public class RentPaymentService {
                 } catch (Exception e) {
                     System.err.println("[EMAIL] Failed to send payment confirmation: " + e.getMessage());
                 }
+            }
+            if (leaseTenantUserId != null) {
+                pushService.sendToUser(leaseTenantUserId, "Payment Received",
+                        "MYR " + String.format("%.0f", request.amountPaid().doubleValue())
+                        + " recorded for " + location, "/tabs/rent-tracking");
             }
         } else {
             activityService.logPaymentUpdated(actorId, propertyName, unitNumber, request.monthYear());

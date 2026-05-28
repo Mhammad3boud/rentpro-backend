@@ -58,6 +58,7 @@ public class SecurityConfig {
                         .requestMatchers("/payments/**").hasAnyRole("OWNER", "TENANT")
                         .requestMatchers("/dashboard/**").hasAnyRole("OWNER", "TENANT")
                         .requestMatchers("/maintenance/**").hasAnyRole("OWNER", "TENANT")
+                        .requestMatchers("/api/push/**").hasAnyRole("OWNER", "TENANT")
                         .requestMatchers("/api/users/**").hasAnyRole("OWNER", "TENANT", "SUPER_ADMIN")
                         .requestMatchers("/api/notifications/**").hasAnyRole("OWNER", "TENANT")
                         .requestMatchers("/api/activities/**").hasAnyRole("OWNER", "TENANT")
