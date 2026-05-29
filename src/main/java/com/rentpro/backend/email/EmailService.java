@@ -19,7 +19,7 @@ public class EmailService {
     @Value("${app.frontend.base-url:http://localhost:8104}")
     private String frontendBaseUrl;
 
-    private static final String FROM = "RentPro <onboarding@resend.dev>";
+    private static final String FROM = "RentPro <noreply@rentpro.dev>";
     private static final String RESEND_URL = "https://api.resend.com/emails";
 
     private void send(String to, String subject, String text) {
