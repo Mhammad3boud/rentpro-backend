@@ -1,5 +1,6 @@
 package com.rentpro.backend.dashboard;
 
+import com.rentpro.backend.dashboard.dto.CurrencyBreakdown;
 import com.rentpro.backend.dashboard.dto.OwnerDashboardResponse;
 import com.rentpro.backend.dashboard.dto.TenantDashboardResponse;
 import com.rentpro.backend.lease.LeaseRepository;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -56,6 +58,16 @@ public class DashboardService {
         long totalTenants = tenantRepository.findByOwner_UserId(ownerId).size();
         long activeLeases = leaseRepository.countActiveLeasesByOwner(ownerId, LocalDate.now());
 
+        List<CurrencyBreakdown> revenueBreakdown = rentPaymentRepository
+                .revenueBreakdownByOwner(ownerId)
+                .stream()
+                .map(row -> new CurrencyBreakdown(
+                        (String) row[0],
+                        (BigDecimal) row[1],
+                        (BigDecimal) row[2]
+                ))
+                .toList();
+
         return new OwnerDashboardResponse(
                 totalExpected,
                 totalCollected,
@@ -67,10 +79,11 @@ public class DashboardService {
                 pending,
                 inProgress,
                 resolved,
-                0L, // rejected - removed from enum
+                0L,
                 totalProperties,
                 totalTenants,
-                activeLeases
+                activeLeases,
+                revenueBreakdown
         );
     }
 

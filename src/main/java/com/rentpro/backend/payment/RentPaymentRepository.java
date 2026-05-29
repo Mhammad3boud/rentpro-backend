@@ -96,6 +96,21 @@ public interface RentPaymentRepository extends JpaRepository<RentPayment, UUID> 
     """)
     BigDecimal sumCurrentMonthRevenueByOwner(@Param("ownerId") UUID ownerId);
 
+    // ✅ OWNER: per-currency breakdown (monthly revenue + outstanding grouped by currency)
+    @Query("""
+        select coalesce(r.currency, 'MYR'),
+               coalesce(sum(case when r.paidDate is not null
+                                  and year(r.paidDate) = year(current_date)
+                                  and month(r.paidDate) = month(current_date)
+                             then r.amountPaid else 0 end), 0),
+               coalesce(sum(case when r.paymentStatus <> com.rentpro.backend.payment.RentPayment.PaymentStatus.PAID
+                             then r.amountExpected - coalesce(r.amountPaid, 0) else 0 end), 0)
+        from RentPayment r
+        where r.lease.property.owner.userId = :ownerId
+        group by coalesce(r.currency, 'MYR')
+    """)
+    List<Object[]> revenueBreakdownByOwner(@Param("ownerId") UUID ownerId);
+
     // ✅ PLATFORM: total revenue this month (all owners)
     @Query("""
         select coalesce(sum(r.amountPaid), 0)

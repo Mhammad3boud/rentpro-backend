@@ -1,6 +1,7 @@
 package com.rentpro.backend.dashboard.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record OwnerDashboardResponse(
         BigDecimal totalExpected,
@@ -16,5 +17,6 @@ public record OwnerDashboardResponse(
         long maintenanceRejected,
         long totalProperties,
         long totalTenants,
-        long activeLeases
+        long activeLeases,
+        List<CurrencyBreakdown> revenueBreakdown
 ) {}
