@@ -148,7 +148,8 @@ public class LeaseService {
                     saved.getLeaseName(),
                     saved.getStartDate() != null ? saved.getStartDate().toString() : "—",
                     saved.getEndDate() != null ? saved.getEndDate().toString() : "—",
-                    saved.getMonthlyRent() != null ? saved.getMonthlyRent().doubleValue() : 0
+                    saved.getMonthlyRent() != null ? saved.getMonthlyRent().doubleValue() : 0,
+                    property.getCurrency()
                 );
             } catch (Exception e) {
                 System.err.println("[EMAIL] Failed to send lease created email: " + e.getMessage());

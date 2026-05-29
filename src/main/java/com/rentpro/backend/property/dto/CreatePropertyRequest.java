@@ -22,6 +22,7 @@ public record CreatePropertyRequest(
         Double longitude,
         String waterMeterNo,
         String electricityMeterNo,
+        String currency,
         Integer unitCount,
         List<String> unitNumbers,
         

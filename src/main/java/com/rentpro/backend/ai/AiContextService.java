@@ -53,8 +53,8 @@ public class AiContextService {
         ctx.append("- Properties: ").append(dash.totalProperties()).append("\n");
         ctx.append("- Tenants: ").append(dash.totalTenants()).append("\n");
         ctx.append("- Active leases: ").append(dash.activeLeases()).append("\n");
-        ctx.append("- Total outstanding: MYR ").append(dash.totalOutstanding()).append("\n");
-        ctx.append("- This month's revenue: MYR ").append(dash.monthlyRevenue()).append("\n");
+        ctx.append("- Total outstanding: ").append(dash.totalOutstanding()).append(" (see per-payment currency below)\n");
+        ctx.append("- This month's revenue: ").append(dash.monthlyRevenue()).append(" (see per-payment currency below)\n");
         ctx.append("- Overdue: ").append(dash.overdueCount())
            .append(", Partial: ").append(dash.partialCount())
            .append(", Pending: ").append(dash.pendingCount()).append("\n\n");
@@ -65,7 +65,8 @@ public class AiContextService {
                 String tenantName = tenantName(p);
                 String unit = unitRef(p);
                 ctx.append("- ").append(tenantName).append(" (").append(unit).append(")")
-                   .append(": MYR ").append(p.getAmountExpected())
+                   .append(": ").append(p.getCurrency() != null ? p.getCurrency() : "MYR")
+                   .append(" ").append(p.getAmountExpected())
                    .append(", due ").append(p.getDueDate())
                    .append(", status: ").append(p.getPaymentStatus())
                    .append(", month: ").append(p.getMonthYear()).append("\n");
@@ -106,7 +107,7 @@ public class AiContextService {
         ctx.append("=== REAL DATA FROM DATABASE (today: ").append(LocalDate.now()).append(") ===\n\n");
 
         ctx.append("YOUR PAYMENT SUMMARY:\n");
-        ctx.append("- Outstanding balance: MYR ").append(dash.totalOutstanding()).append("\n");
+        ctx.append("- Outstanding balance: ").append(dash.totalOutstanding()).append("\n");
         ctx.append("- Overdue payments: ").append(dash.overdueCount()).append("\n");
         ctx.append("- Next due date: ").append(dash.nextDueDate() != null ? dash.nextDueDate() : "none").append("\n\n");
 
@@ -115,10 +116,13 @@ public class AiContextService {
             payments.stream()
                     .sorted((a, b) -> b.getMonthYear().compareTo(a.getMonthYear()))
                     .limit(6)
-                    .forEach(p -> ctx.append("- ").append(p.getMonthYear())
-                            .append(": MYR ").append(p.getAmountPaid())
-                            .append(" / MYR ").append(p.getAmountExpected())
-                            .append(" (").append(p.getPaymentStatus()).append(")\n"));
+                    .forEach(p -> {
+                        String cur = p.getCurrency() != null ? p.getCurrency() : "MYR";
+                        ctx.append("- ").append(p.getMonthYear())
+                           .append(": ").append(cur).append(" ").append(p.getAmountPaid())
+                           .append(" / ").append(cur).append(" ").append(p.getAmountExpected())
+                           .append(" (").append(p.getPaymentStatus()).append(")\n");
+                    });
             ctx.append("\n");
         }
 

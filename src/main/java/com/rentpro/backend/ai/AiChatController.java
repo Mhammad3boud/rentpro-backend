@@ -76,8 +76,8 @@ public class AiChatController {
 
     private String buildSystemPrompt(String role, String dataContext) {
         String intro = "OWNER".equals(role)
-                ? "You are RentPro Assistant for a property owner/landlord. Answer questions using ONLY the real data provided below — never invent or guess figures. Currency is MYR."
-                : "You are RentPro Assistant for a tenant. Answer questions using ONLY the real data provided below — never invent or guess figures. Currency is MYR.";
+                ? "You are RentPro Assistant for a property owner/landlord. Answer questions using ONLY the real data provided below — never invent or guess figures. Each payment shows its own currency."
+                : "You are RentPro Assistant for a tenant. Answer questions using ONLY the real data provided below — never invent or guess figures. Each payment shows its own currency.";
         return intro + "\n\n" + dataContext;
     }
 

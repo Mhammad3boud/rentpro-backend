@@ -23,13 +23,16 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class StripePaymentService {
 
-    private static final String CURRENCY_MY = "myr";
-    private static final String CURRENCY_TZ = "MYR";
+    // Stripe zero-decimal currencies (no minor unit multiplication needed)
+    private static final Set<String> ZERO_DECIMAL_CURRENCIES = Set.of(
+        "bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga", "pyg", "rwf", "ugx", "vnd", "vuv", "xaf", "xof", "xpf"
+    );
 
     private final StripeProperties properties;
     private final LeaseRepository leaseRepository;
@@ -64,8 +67,7 @@ public class StripePaymentService {
         }
 
         UUID ownerUserId = lease.getProperty().getOwner().getUserId();
-        String country = ownerProfileService.getCountry(ownerUserId);
-        String currency = "TZ".equalsIgnoreCase(country) ? CURRENCY_TZ : CURRENCY_MY;
+        String currency = lease.getProperty().getCurrency().toLowerCase();
 
         Stripe.apiKey = properties.getSecretKey();
         try {
@@ -239,8 +241,7 @@ public class StripePaymentService {
     }
 
     private long toMinorUnits(BigDecimal amount, String currency) {
-        // MYR is a zero-decimal currency in Stripe
-        if (CURRENCY_TZ.equals(currency)) {
+        if (ZERO_DECIMAL_CURRENCIES.contains(currency.toLowerCase())) {
             return amount.longValue();
         }
         return amount.multiply(BigDecimal.valueOf(100)).longValue();

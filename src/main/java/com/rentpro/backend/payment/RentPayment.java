@@ -102,6 +102,12 @@ public class RentPayment {
 
 
 
+    @Column(name = "currency", length = 3)
+
+    private String currency;
+
+
+
     @Column(name = "created_at", nullable = false)
 
     private Instant createdAt;

@@ -110,6 +110,10 @@ public class PaymentCheckoutService {
         }
         sessionRepository.save(session);
 
+        String currency = session.getLease() != null && session.getLease().getProperty() != null
+                ? session.getLease().getProperty().getCurrency()
+                : "MYR";
+
         return new CheckoutStatusResponse(
                 session.getProvider(),
                 session.getProviderSessionId(),
@@ -117,7 +121,7 @@ public class PaymentCheckoutService {
                 session.getStatus(),
                 session.getMessage(),
                 session.getAmountPaid(),
-                "MYR",
+                currency,
                 session.getUpdatedAt()
         );
     }

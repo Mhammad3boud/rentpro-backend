@@ -45,6 +45,9 @@ public class Property {
     @Column(name = "electricity_meter_no")
     private String electricityMeterNo;
 
+    @Column(name = "currency", nullable = false)
+    private String currency = "MYR";
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -73,4 +76,6 @@ public class Property {
     public void setWaterMeterNo(String waterMeterNo) { this.waterMeterNo = waterMeterNo; }
     public String getElectricityMeterNo() { return electricityMeterNo; }
     public void setElectricityMeterNo(String electricityMeterNo) { this.electricityMeterNo = electricityMeterNo; }
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency != null ? currency.toUpperCase() : "MYR"; }
 }

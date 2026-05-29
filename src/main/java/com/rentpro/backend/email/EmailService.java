@@ -84,28 +84,28 @@ public class EmailService {
     // ── Payment ─────────────────────────────────────────────────────────
 
     public void sendPaymentReceivedEmail(String toEmail, String tenantName,
-                                          String propertyName, String monthYear, double amount) {
+                                          String propertyName, String monthYear, double amount, String currency) {
         send(toEmail,
             "RentPro – Payment Received for " + monthYear,
             "Hello " + tenantName + ",\n\n" +
             "Your rent payment has been recorded.\n\n" +
             "  Property : " + propertyName + "\n" +
             "  Month    : " + monthYear + "\n" +
-            "  Amount   : MYR " + String.format("%.2f", amount) + "\n\n" +
+            "  Amount   : " + currency + " " + String.format("%.2f", amount) + "\n\n" +
             "Thank you for your payment.\n\n" +
             "— The RentPro Team"
         );
     }
 
     public void sendPaymentOverdueEmail(String toEmail, String tenantName,
-                                         String propertyName, String monthYear, double amountDue) {
+                                         String propertyName, String monthYear, double amountDue, String currency) {
         send(toEmail,
             "RentPro – Rent Overdue: " + monthYear,
             "Hello " + tenantName + ",\n\n" +
             "This is a reminder that your rent is overdue.\n\n" +
             "  Property   : " + propertyName + "\n" +
             "  Month      : " + monthYear + "\n" +
-            "  Amount Due : MYR " + String.format("%.2f", amountDue) + "\n\n" +
+            "  Amount Due : " + currency + " " + String.format("%.2f", amountDue) + "\n\n" +
             "Please arrange payment as soon as possible.\n\n" +
             "— The RentPro Team"
         );
@@ -145,7 +145,7 @@ public class EmailService {
 
     public void sendLeaseCreatedEmail(String toEmail, String tenantName,
                                        String propertyName, String startDate,
-                                       String endDate, double monthlyRent) {
+                                       String endDate, double monthlyRent, String currency) {
         send(toEmail,
             "RentPro – Your Lease Details",
             "Hello " + tenantName + ",\n\n" +
@@ -153,7 +153,7 @@ public class EmailService {
             "  Property     : " + propertyName + "\n" +
             "  Start Date   : " + startDate + "\n" +
             "  End Date     : " + endDate + "\n" +
-            "  Monthly Rent : MYR " + String.format("%.2f", monthlyRent) + "\n\n" +
+            "  Monthly Rent : " + currency + " " + String.format("%.2f", monthlyRent) + "\n\n" +
             "Log in to RentPro to view your full lease details.\n\n" +
             "— The RentPro Team"
         );

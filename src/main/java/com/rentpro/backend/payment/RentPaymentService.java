@@ -87,6 +87,7 @@ public class RentPaymentService {
         payment.setPaymentMethod(RentPayment.PaymentMethod.valueOf(request.paymentMethod().name()));
 
         payment.setPaymentStatus(calculateStatus(payment.getAmountExpected(), payment.getAmountPaid(), payment.getDueDate()));
+        payment.setCurrency(lease.getProperty().getCurrency());
 
         RentPayment saved = rentPaymentRepository.save(payment);
         
@@ -115,14 +116,16 @@ public class RentPaymentService {
             if (tenantEmail != null && tenantName != null) {
                 try {
                     emailService.sendPaymentReceivedEmail(tenantEmail, tenantName, location,
-                            request.monthYear(), request.amountPaid().doubleValue());
+                            request.monthYear(), request.amountPaid().doubleValue(),
+                            lease.getProperty().getCurrency());
                 } catch (Exception e) {
                     System.err.println("[EMAIL] Failed to send payment confirmation: " + e.getMessage());
                 }
             }
             if (leaseTenantUserId != null) {
+                String currency = lease.getProperty().getCurrency();
                 pushService.sendToUser(leaseTenantUserId, "Payment Received",
-                        "MYR " + String.format("%.0f", request.amountPaid().doubleValue())
+                        currency + " " + String.format("%.0f", request.amountPaid().doubleValue())
                         + " recorded for " + location, "/tabs/rent-tracking");
             }
         } else {
@@ -202,6 +205,7 @@ public class RentPaymentService {
         pending.setAmountPaid(BigDecimal.ZERO);
         pending.setDueDate(LocalDate.of(billingMonth.getYear(), billingMonth.getMonth(), 7));
         pending.setPaymentStatus(RentPayment.PaymentStatus.PENDING);
+        pending.setCurrency(lease.getProperty().getCurrency());
         rentPaymentRepository.save(pending);
     }
 
@@ -234,6 +238,7 @@ public class RentPaymentService {
             pending.setAmountPaid(BigDecimal.ZERO);
             pending.setDueDate(dueDate);
             pending.setPaymentStatus(RentPayment.PaymentStatus.PENDING);
+            pending.setCurrency(lease.getProperty().getCurrency());
             rentPaymentRepository.save(pending);
         }
     }

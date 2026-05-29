@@ -53,6 +53,9 @@ public class PropertyService {
         property.setLongitude(request.longitude());
         property.setWaterMeterNo(request.getEffectiveWaterMeterNo());
         property.setElectricityMeterNo(request.getEffectiveElectricityMeterNo());
+        if (request.currency() != null && !request.currency().isBlank()) {
+            property.setCurrency(request.currency());
+        }
 
         Property savedProperty = propertyRepository.save(property);
 
@@ -159,6 +162,9 @@ public class PropertyService {
         }
         if (request.electricityMeterNo() != null || (request.meta() != null && request.meta().electricityMeterNumber() != null)) {
             property.setElectricityMeterNo(trimToNull(request.getEffectiveElectricityMeterNo()));
+        }
+        if (request.currency() != null && !request.currency().isBlank()) {
+            property.setCurrency(request.currency());
         }
 
         return propertyRepository.save(property);
