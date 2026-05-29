@@ -77,6 +77,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
                 "https://rentpro-frontend-mmohammadaboud06-7811s-projects.vercel.app",
+                "https://rentpro.dev",
                 "http://localhost:4200",
                 "http://localhost:8100",
                 "http://localhost:8104",
