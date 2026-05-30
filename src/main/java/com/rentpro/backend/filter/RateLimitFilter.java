@@ -91,6 +91,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private String determineEndpointType(String requestUri) {
         if (requestUri.startsWith("/api/auth/")) {
             return "auth";
+        } else if (requestUri.startsWith("/api/ai/")) {
+            return "ai";
         } else if (requestUri.contains("/upload") || requestUri.contains("/file")) {
             return "upload";
         } else {
@@ -105,17 +107,22 @@ public class RateLimitFilter extends OncePerRequestFilter {
         switch (endpointType) {
             case "auth":
                 return Bucket.builder()
-                        .addLimit(io.github.bucket4j.Bandwidth.classic(5, 
+                        .addLimit(io.github.bucket4j.Bandwidth.classic(5,
                             io.github.bucket4j.Refill.intervally(5, Duration.ofMinutes(1))))
+                        .build();
+            case "ai":
+                return Bucket.builder()
+                        .addLimit(io.github.bucket4j.Bandwidth.classic(20,
+                            io.github.bucket4j.Refill.intervally(20, Duration.ofMinutes(1))))
                         .build();
             case "upload":
                 return Bucket.builder()
-                        .addLimit(io.github.bucket4j.Bandwidth.classic(10, 
+                        .addLimit(io.github.bucket4j.Bandwidth.classic(10,
                             io.github.bucket4j.Refill.intervally(10, Duration.ofMinutes(1))))
                         .build();
             default:
                 return Bucket.builder()
-                        .addLimit(io.github.bucket4j.Bandwidth.classic(100, 
+                        .addLimit(io.github.bucket4j.Bandwidth.classic(100,
                             io.github.bucket4j.Refill.intervally(100, Duration.ofMinutes(1))))
                         .build();
         }

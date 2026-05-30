@@ -50,12 +50,14 @@ public class AiChatController {
 
         String systemPrompt = buildSystemPrompt(role, dataContext);
 
+        String safeUserMessage = "[USER_MESSAGE_START]\n" + req.message() + "\n[USER_MESSAGE_END]";
+
         Map<String, Object> body = Map.of(
                 "model", MODEL,
                 "max_tokens", 1024,
                 "messages", List.of(
                         Map.of("role", "system", "content", systemPrompt),
-                        Map.of("role", "user", "content", req.message())
+                        Map.of("role", "user", "content", safeUserMessage)
                 )
         );
 
