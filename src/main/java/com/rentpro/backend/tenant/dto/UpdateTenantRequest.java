@@ -6,6 +6,7 @@ package com.rentpro.backend.tenant.dto;
 public record UpdateTenantRequest(
         String fullName,
         String phone,
-        String emergencyContact,
+        String emergencyName,
+        String emergencyPhone,
         String address
 ) {}

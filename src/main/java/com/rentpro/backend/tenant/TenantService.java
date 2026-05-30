@@ -69,7 +69,8 @@ public class TenantService {
         tenant.setUser(tenantUser);
         tenant.setFullName(request.fullName());
         tenant.setPhone(request.phone());
-        tenant.setEmergencyContact(request.emergencyContact());
+        tenant.setEmergencyName(request.emergencyName());
+        tenant.setEmergencyPhone(request.emergencyPhone());
         tenant.setAddress(request.address());
 
         Tenant saved = tenantRepository.save(tenant);
@@ -107,7 +108,8 @@ public class TenantService {
         }
 
         if (request.phone() != null) tenant.setPhone(request.phone());
-        if (request.emergencyContact() != null) tenant.setEmergencyContact(request.emergencyContact());
+        if (request.emergencyName() != null) tenant.setEmergencyName(request.emergencyName());
+        if (request.emergencyPhone() != null) tenant.setEmergencyPhone(request.emergencyPhone());
         if (request.address() != null) tenant.setAddress(request.address());
 
         return tenantRepository.save(tenant);
@@ -120,7 +122,8 @@ public class TenantService {
 
         if (request.fullName() != null) tenant.setFullName(request.fullName());
         if (request.phone() != null) tenant.setPhone(request.phone());
-        if (request.emergencyContact() != null) tenant.setEmergencyContact(request.emergencyContact());
+        if (request.emergencyName() != null) tenant.setEmergencyName(request.emergencyName());
+        if (request.emergencyPhone() != null) tenant.setEmergencyPhone(request.emergencyPhone());
         if (request.address() != null) tenant.setAddress(request.address());
 
         return tenantRepository.save(tenant);

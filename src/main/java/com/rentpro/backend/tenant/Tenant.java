@@ -26,8 +26,11 @@ public class Tenant {
 
     private String phone;
 
-    @Column(name="emergency_contact")
-    private String emergencyContact;
+    @Column(name="emergency_name")
+    private String emergencyName;
+
+    @Column(name="emergency_phone")
+    private String emergencyPhone;
 
     private String address;
 
@@ -46,8 +49,10 @@ public class Tenant {
     public void setFullName(String fullName) { this.fullName = fullName; }
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
-    public String getEmergencyContact() { return emergencyContact; }
-    public void setEmergencyContact(String emergencyContact) { this.emergencyContact = emergencyContact; }
+    public String getEmergencyName() { return emergencyName; }
+    public void setEmergencyName(String emergencyName) { this.emergencyName = emergencyName; }
+    public String getEmergencyPhone() { return emergencyPhone; }
+    public void setEmergencyPhone(String emergencyPhone) { this.emergencyPhone = emergencyPhone; }
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
     public String getIcPhotoUrl() { return icPhotoUrl; }

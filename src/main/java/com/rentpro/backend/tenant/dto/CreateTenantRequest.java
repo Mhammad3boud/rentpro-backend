@@ -5,6 +5,7 @@ public record CreateTenantRequest(
         String email,
         String password,
         String phone,
-        String emergencyContact,
+        String emergencyName,
+        String emergencyPhone,
         String address
 ) {}
